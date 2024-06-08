@@ -18,7 +18,7 @@ class WalletApiService(
         return webClient.get()
             .uri{
                 it.path("/account/nft")
-                it.queryParam("wallet",wallet)
+                it.queryParam("walletAddress",wallet)
                 it.build()
             }
             .retrieve()

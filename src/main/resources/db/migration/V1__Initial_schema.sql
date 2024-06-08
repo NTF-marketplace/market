@@ -17,6 +17,14 @@ CREATE TYPE  chain_type AS ENUM (
     'POLYGON_AMOY'
     );
 
+CREATE TYPE token_type AS ENUM (
+    'MATIC',
+    'BTC',
+    'ETH',
+    'SAND'
+    );
+
+
 CREATE TABLE IF NOT EXISTS nft (
     id BIGINT PRIMARY KEY,
     token_id VARCHAR(255) NOT NULL,
@@ -26,11 +34,12 @@ CREATE TABLE IF NOT EXISTS nft (
 
 
 CREATE TABLE IF NOT EXISTS listing (
-    id BIGINT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     nft_id BIGINT REFERENCES nft(id),
     address VARCHAR(255) NOT NULL,
-    created_At BIGINT not null,
+    created_at BIGINT not null,
     end_date BIGINT not null,
-    is_active bool not null,
-    price DECIMAL(19, 4) NOT NULL
+    active bool not null,
+    price DECIMAL(19, 4) NOT NULL,
+    token_type token_type not null
 )
