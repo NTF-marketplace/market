@@ -6,6 +6,7 @@ import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
 
@@ -17,6 +18,10 @@ class ListingService(
 
     fun getListingByNftId(nftId: Long): Mono<ListingResponse> {
         return listingRepository.findByNftIdAndActiveTrue(nftId).map { it.toResponse() }
+    }
+
+    fun getListingByAddress(address: String): Flux<ListingResponse> {
+        return listingRepository.findByAddressAndActiveTrue(address).map { it.toResponse() }
     }
 
 

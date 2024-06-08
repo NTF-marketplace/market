@@ -10,4 +10,6 @@ interface ListingRepository: R2dbcRepository<Listing,Long> {
 
     fun findByNftIdAndActiveTrue(nftId: Long): Mono<Listing>
 
+    fun findByAddressAndActiveTrue(address: String): Flux<Listing>
+
 }
