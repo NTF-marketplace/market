@@ -14,4 +14,6 @@ interface ListingRepository: R2dbcRepository<Listing,Long> {
 
     fun findAllByNftIdOrderByCreatedAt(nftId: Long): Flux<Listing>
 
+    fun findAllByEndDateLessThanEqualAndActiveTrueOrderByEndDateAsc(endDateTime: Long): Flux<Listing>
+
 }

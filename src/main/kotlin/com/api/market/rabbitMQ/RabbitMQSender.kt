@@ -12,4 +12,8 @@ class RabbitMQSender(
     fun listingSend(listing: ListingResponse) {
         rabbitTemplate.convertAndSend("listingExchange", "listingRoutingKey", listing)
     }
+
+    fun listingCancelSend(nftIds: List<Long>) {
+        rabbitTemplate.convertAndSend("listingCancelExchange", "listingCancelRoutingKey", nftIds)
+    }
 }

@@ -54,4 +54,12 @@ class RabbitMQConfig {
     fun listingExchange() = createExchange("listingExchange")
     @Bean
     fun bindingListingQueue(listingQueue: Queue, listingExchange: DirectExchange) = createBinding(listingQueue, listingExchange, "listingRoutingKey")
+
+    @Bean
+    fun listingCancelQueue() = createQueue("listingCancelQueue")
+
+    @Bean
+    fun listingCancelExchange() = createExchange("listingCancelExchange")
+    @Bean
+    fun bindingListingCancelQueue(listingCancelQueue: Queue, listingCancelExchange: DirectExchange) = createBinding(listingCancelQueue, listingCancelExchange, "listingCancelRoutingKey")
 }
