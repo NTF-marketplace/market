@@ -12,4 +12,6 @@ interface ListingRepository: R2dbcRepository<Listing,Long> {
 
     fun findByAddressAndActiveTrue(address: String): Flux<Listing>
 
+    fun findAllByNftIdOrderByCreatedAt(nftId: Long): Flux<Listing>
+
 }

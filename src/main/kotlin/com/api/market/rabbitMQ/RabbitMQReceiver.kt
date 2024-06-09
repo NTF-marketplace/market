@@ -13,6 +13,5 @@ class RabbitMQReceiver(
     fun nftMessage(nft: NftResponse) {
         nftService.save(nft)
             .subscribe()
-
     }
 }
