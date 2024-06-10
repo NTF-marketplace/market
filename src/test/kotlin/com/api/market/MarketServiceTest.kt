@@ -55,8 +55,8 @@ class MarketServiceTest(
     fun update() {
         val request = ListingUpdateRequest(
             endDate = ZonedDateTime.now(),
-            price = 0.24,
-            tokenType = TokenType.MATIC
+            price = 0.26,
+            tokenType = TokenType.BTC
         )
         listingService.update(4,request).block()
     }

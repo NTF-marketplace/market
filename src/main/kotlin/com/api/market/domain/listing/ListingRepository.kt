@@ -1,10 +1,10 @@
 package com.api.market.domain.listing
 
-import org.springframework.data.r2dbc.repository.R2dbcRepository
+import org.springframework.data.repository.reactive.ReactiveCrudRepository
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
-interface ListingRepository: R2dbcRepository<Listing,Long> {
+interface ListingRepository: ReactiveCrudRepository<Listing,Long> {
 
     fun existsByNftIdAndAddressAndActiveTrue(nftId: Long, address: String): Mono<Boolean>
 

@@ -34,7 +34,7 @@ class ListingService(
 
 
     fun create(request: ListingCreateRequest) : Mono<Listing> {
-         return walletApiService.getAccountNftByAddress(request.address).filter { it == request.nftId }
+         return walletApiService.getAccountNftByAddress(request.address).filter { it.id == request.nftId }
              .singleOrEmpty()
              .switchIfEmpty(Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found")))
              .flatMap {
@@ -98,8 +98,4 @@ class ListingService(
         price = this.price,
         tokenType = this.tokenType
     )
-
-
-
-
 }

@@ -42,4 +42,11 @@ CREATE TABLE IF NOT EXISTS listing (
     active bool not null,
     price DECIMAL(19, 4) NOT NULL,
     token_type token_type not null
-)
+);
+
+CREATE TABLE IF NOT EXISTS order (
+    id SERIAL PRIMARY KEY,
+    listing_id BIGINT REFERENCES listing(id),
+    address VARCHAR(255) NOT NULL,
+    created_at BIGINT not null
+);
