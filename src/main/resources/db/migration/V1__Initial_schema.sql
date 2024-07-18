@@ -20,8 +20,7 @@ CREATE TYPE  chain_type AS ENUM (
 CREATE TYPE token_type AS ENUM (
     'MATIC',
     'BTC',
-    'ETH',
-    'SAND'
+    'ETH'
     );
 
 
@@ -42,4 +41,4 @@ CREATE TABLE IF NOT EXISTS listing (
     active bool not null,
     price DECIMAL(19, 4) NOT NULL,
     token_type token_type not null
-)
+);

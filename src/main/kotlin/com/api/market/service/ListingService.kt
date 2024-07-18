@@ -28,18 +28,20 @@ class ListingService(
         return listingRepository.findByNftIdAndActiveTrue(nftId).map { it.toResponse() }
     }
 
-    fun getListingByAddress(address: String): Flux<ListingResponse> {
-        return listingRepository.findByAddressAndActiveTrue(address).map { it.toResponse() }
-    }
 
-
-    fun create(request: ListingCreateRequest) : Mono<Listing> {
-         return walletApiService.getAccountNftByAddress(request.address).filter { it == request.nftId }
-             .singleOrEmpty()
-             .switchIfEmpty(Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found")))
-             .flatMap {
-                 saveListing(request)
-             }.doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
+    fun create(request: ListingCreateRequest): Mono<Listing> {
+        return walletApiService.getAccountNftByAddress(request.address, request.nftId)
+            .flatMap { nftExists ->
+                if (nftExists) {
+                    saveListing(request)
+                } else {
+                    Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
+                }
+            }
+            // .doOnSuccess { listing ->
+            //     // 그 시간에 해야되는거 아니야?
+            //     eventPublisher.publishEvent(ListingUpdatedEvent(this, listing.toResponse()))
+            // }
     }
 
 
@@ -75,6 +77,7 @@ class ListingService(
             if (it) {
                 Mono.empty()
             } else {
+                // history 같은것도 저장하게 해야겠다.
                 listingRepository.save(
                     Listing(
                         nftId = request.nftId,

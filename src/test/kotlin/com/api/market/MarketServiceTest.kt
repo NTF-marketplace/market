@@ -25,7 +25,7 @@ class MarketServiceTest(
     fun createListing() {
 
         val request = ListingCreateRequest(
-            nftId = 1L,
+            nftId = 3L,
             address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
             endDate = ZonedDateTime.now().plusDays(3),
             price = 0.23,

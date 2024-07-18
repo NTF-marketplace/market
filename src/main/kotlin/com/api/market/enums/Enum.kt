@@ -10,7 +10,5 @@ enum class ChainType {
     POLYGON_AMOY,
 }
 
-enum class TokenType {
-    SAND, MATIC, ETH, BTC
-}
+enum class TokenType { MATIC, ETH, BTC }
 

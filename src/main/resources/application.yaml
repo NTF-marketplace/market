@@ -22,4 +22,4 @@ server:
   port: 8085
 
 wallet:
-  uri: "http://localhost:8083/v1/wallet"
+  uri: "http://localhost:8083"
