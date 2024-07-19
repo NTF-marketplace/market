@@ -39,37 +39,17 @@ class ListingService(
                     Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
                 }
             }
-            .doOnSuccess { listing ->
-                kafkaProducer.sendListing(listing)
+            .doOnSuccess {
+              eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse()))
             }
     }
 
 
     fun createtest(request: ListingCreateRequest): Mono<Listing> {
         return saveListing(request)
-            .doOnSuccess { kafkaProducer.sendListing(it) }
+//            .doOnSuccess { kafkaProducer.sendListing(it) }
     }
 
-
-    // fun create(request: ListingCreateRequest): Mono<Listing> {
-    //     return walletApiService.getAccountNftByAddress(request.address, request.nftId)
-    //         .flatMap { nftExists ->
-    //             if (nftExists) {
-    //                 saveListing(request)
-    //             } else {
-    //                 Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
-    //             }
-    //         }
-    // }
-
-
-
-    fun update(id : Long, request: ListingUpdateRequest): Mono<Listing> {
-        return listingRepository.findById(id)
-            .map { it.update(request) }
-            .flatMap { listingRepository.save(it) }
-            .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
-    }
 
     fun cancel(id: Long) : Mono<Void> {
         return listingRepository.findById(id)
@@ -92,12 +72,12 @@ class ListingService(
     }
 
     fun saveListing(request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndActiveTrue(request.nftId, request.address).flatMap {
-            if (it) {
-                Mono.empty()
-            } else {
-                listingRepository.save(
-                    Listing(
+        return listingRepository.existsByNftIdAndAddressAndActiveTrue(request.nftId, request.address)
+            .flatMap { exists ->
+                if (exists) {
+                    Mono.empty()
+                } else {
+                    val newListing = Listing(
                         nftId = request.nftId,
                         address = request.address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
@@ -106,9 +86,12 @@ class ListingService(
                         price = request.price,
                         tokenType = request.tokenType
                     )
-                )
+                    listingRepository.save(newListing)
+                        .doOnSuccess { savedListing ->
+                            kafkaProducer.sendListing(savedListing)
+                        }
+                }
             }
-        }
     }
 
     private fun Listing.toResponse() = ListingResponse (
