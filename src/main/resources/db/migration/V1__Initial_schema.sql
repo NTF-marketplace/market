@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS listing (
     id SERIAL PRIMARY KEY,
     nft_id BIGINT REFERENCES nft(id),
     address VARCHAR(255) NOT NULL,
-    created_at BIGINT not null,
+    created_date BIGINT not null,
     end_date BIGINT not null,
     active bool not null,
     price DECIMAL(19, 4) NOT NULL,

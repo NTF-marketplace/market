@@ -6,6 +6,7 @@ import java.time.ZonedDateTime
 data class ListingCreateRequest(
     val nftId: Long,
     val address: String,
+    val createdDate: ZonedDateTime,
     val endDate: ZonedDateTime,
     val price: Double,
     val tokenType: TokenType
