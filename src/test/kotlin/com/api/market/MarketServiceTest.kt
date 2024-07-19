@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 import java.time.ZonedDateTime
 
 @SpringBootTest
@@ -46,7 +47,7 @@ class MarketServiceTest(
             address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
             createdDate = now.plusSeconds(30), // 30초 후로 설정
             endDate = now.plusDays(3),
-            price = 1.23,
+            price = BigDecimal(1.23),
             tokenType =  TokenType.MATIC
         )
 

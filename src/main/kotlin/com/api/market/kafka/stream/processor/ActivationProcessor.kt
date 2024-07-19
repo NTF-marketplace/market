@@ -22,7 +22,6 @@ class ActivationProcessor: Transformer<String, Listing, KeyValue<String, Listing
     override fun transform(key: String, listing: Listing): KeyValue<String, Listing>? {
         val now = context.timestamp()
         if (now >= listing.createdDate && !listing.active) {
-            println("")
             val activatedListing = listing.copy(active = true)
             stateStore.put(key, activatedListing)
             return KeyValue(key, activatedListing)

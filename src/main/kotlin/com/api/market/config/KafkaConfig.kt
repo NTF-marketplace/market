@@ -1,6 +1,7 @@
 package com.api.market.config
 
 import com.api.market.domain.listing.Listing
+import com.api.market.kafka.KafkaProducer
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Serdes
@@ -10,6 +11,7 @@ import org.apache.kafka.streams.processor.WallclockTimestampExtractor
 import org.apache.kafka.streams.state.StoreBuilder
 import org.apache.kafka.streams.state.Stores
 import org.apache.kafka.streams.state.TimestampedKeyValueStore
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -19,12 +21,16 @@ import org.springframework.kafka.config.KafkaStreamsConfiguration
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.ConsumerFactory
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory
+import org.springframework.kafka.listener.CommonErrorHandler
+import org.springframework.kafka.listener.MessageListenerContainer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerde
 
 @Configuration
 @EnableKafkaStreams
 class KafkaConfig {
+
+    private val logger = LoggerFactory.getLogger(KafkaConfig::class.java)
 
     @Value("\${spring.kafka.bootstrap-servers}")
     private lateinit var bootstrapServers: String
@@ -59,6 +65,12 @@ class KafkaConfig {
     fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Listing> {
         val factory = ConcurrentKafkaListenerContainerFactory<String, Listing>()
         factory.consumerFactory = consumerFactory()
+        factory.setCommonErrorHandler(object : CommonErrorHandler {
+            override fun handleRemaining(thrownException: Exception, records: List<org.apache.kafka.clients.consumer.ConsumerRecord<*, *>>, consumer: org.apache.kafka.clients.consumer.Consumer<*, *>, container: MessageListenerContainer) {
+                logger.error("Error in consumer: ${thrownException.message}", thrownException)
+                logger.error("Problematic records: $records")
+            }
+        })
         return factory
     }
     // -------------------------------------

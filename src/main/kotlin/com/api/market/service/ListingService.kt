@@ -103,7 +103,7 @@ class ListingService(
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
                         active = false, // 아직 리스팅 시작전
-                        price = BigDecimal(request.price),
+                        price = request.price,
                         tokenType = request.tokenType
                     )
                 )

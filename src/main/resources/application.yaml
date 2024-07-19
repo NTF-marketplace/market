@@ -43,3 +43,9 @@ server:
 
 wallet:
   uri: "http://localhost:8083"
+
+  logging:
+    level:
+      org:
+        apache:
+          kafka: DEBUG

@@ -15,34 +15,36 @@ import java.time.Duration
 class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listing>> {
     private lateinit var context: ProcessorContext
     private lateinit var stateStore: KeyValueStore<String, Listing>
-    private lateinit var scheduler: Cancellable
 
     override fun init(context: ProcessorContext) {
         this.context = context
         this.stateStore = context.getStateStore("expiration-store") as KeyValueStore<String, Listing>
-        this.scheduler = context.schedule(Duration.ofSeconds(10), PunctuationType.WALL_CLOCK_TIME, this::processStoredListings)
     }
 
-    override fun transform(key: String, value: Listing): KeyValue<String, Listing>? {
-        stateStore.put(key, value)
-        return null // Don't emit anything immediately
-    }
-
-    private fun processStoredListings(timestamp: Long) {
-        val iter = stateStore.all()
-        while (iter.hasNext()) {
-            val entry = iter.next()
-            val listing = entry.value
-            if (timestamp >= listing.endDate && listing.active) {
-                val expiredListing = listing.copy(active = false)
-                stateStore.put(entry.key, expiredListing)
-                context.forward(entry.key, expiredListing)
+    override fun transform(key: String, listing: Listing): KeyValue<String, Listing>? {
+        println("ExpirationProcessor - inside transform key: $key")
+        println("ExpirationProcessor - inside transform listing: $listing")
+        val now = context.timestamp()
+        if (now >= listing.endDate && listing.active) {
+            val expiredListing = listing.copy(active = false)
+            stateStore.put(key, expiredListing)
+            return KeyValue(key, expiredListing)
+        }
+        stateStore.put(key, listing)
+        context.schedule(Duration.ofMillis(listing.endDate - now), PunctuationType.WALL_CLOCK_TIME) { _ ->
+            println("ExpirationProcessor - execute schedule")
+            val storedListing = stateStore.get(key)
+            println("ExpirationProcessor - storedListing: $storedListing")
+            if (storedListing != null && storedListing.active) {
+                println("ExpirationProcessor - Expiring listing")
+                val expiredListing = storedListing.copy(active = false)
+                println("ExpirationProcessor - expiredListing: $expiredListing")
+                stateStore.put(key, expiredListing)
+                context.forward(key, expiredListing)
             }
         }
-        iter.close()
+        return null
     }
 
-    override fun close() {
-        scheduler.cancel()
-    }
+    override fun close() {}
 }

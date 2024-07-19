@@ -12,11 +12,6 @@ class KafkaProducer(
 
     private val logger = LoggerFactory.getLogger(KafkaProducer::class.java)
 
-    // fun sendListing(listing: Listing) {
-    //     kafkaTemplate.send("listing-events", listing.id.toString(), listing)
-    // }
-
-
     fun sendListing(listing: Listing) {
         logger.info("Sending listing: $listing")
         val future = kafkaTemplate.send("listing-events", listing.id.toString(), listing)
