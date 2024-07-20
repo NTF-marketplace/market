@@ -9,6 +9,7 @@ import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import com.api.market.service.ListingService
+import com.api.market.service.WalletApiService
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -26,6 +27,7 @@ class MarketServiceTest(
     @Autowired private val listingRepository: ListingRepository,
     @Autowired private val eventPublisher: ApplicationEventPublisher,
     @Autowired private val kafkaProducer: KafkaProducer,
+    @Autowired private val walletApiService: WalletApiService,
 ) {
 
     // @Test
@@ -41,87 +43,69 @@ class MarketServiceTest(
     //     listingService.create(request).block()
     // }
 
-    @Test
-    fun createListing() {
-        val now = ZonedDateTime.now()
-        val request = ListingCreateRequest(
-            nftId = 3L,
-            address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-            createdDate = now.plusSeconds(50), // 30초 후로 설정
-            endDate = now.plusDays(3),
-            price = BigDecimal(1.23),
-            tokenType =  TokenType.MATIC
-        )
 
-        listingService.createtest(request).block()
-
-        Thread.sleep(60000)
-    }
 
     @Test
     fun createMultipleListings() {
         val now = ZonedDateTime.now()
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 1L,
-                address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-                createdDate = now.plusSeconds(10),
-                endDate = now.plusDays(1),
-                price = BigDecimal("1.23"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
                 nftId = 2L,
-                address = "0x02c83b5bb3f77f324d62d53e829bc172a6a72868",
-                createdDate = now.plusSeconds(20),
-                endDate = now.plusDays(2),
-                price = BigDecimal("2.34"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
-                nftId = 3L,
-                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+                address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
                 createdDate = now.plusSeconds(30),
                 endDate = now.plusDays(3),
-                price = BigDecimal("3.45"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
-                nftId = 4L,
-                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
-                createdDate = now.plusSeconds(40),
-                endDate = now.plusDays(3),
-                price = BigDecimal("3.45"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
-                nftId = 5L,
-                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
-                createdDate = now.plusSeconds(40),
-                endDate = now.plusDays(3),
-                price = BigDecimal("3.45"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
-                nftId = 6L,
-                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
-                createdDate = now.plusMinutes(5),
-                endDate = now.plusDays(3),
-                price = BigDecimal("3.45"),
-                tokenType = TokenType.MATIC
-            ),
-            ListingCreateRequest(
-                nftId = 7L,
-                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
-                createdDate = now.plusMinutes(20),
-                endDate = now.plusDays(3),
-                price = BigDecimal("3.45"),
+                price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
             )
-
-
-
-
+//            ListingCreateRequest(
+//                nftId = 2L,
+//                address = "0x02c83b5bb3f77f324d62d53e829bc172a6a72868",
+//                createdDate = now.plusSeconds(20),
+//                endDate = now.plusSeconds(60),
+//                price = BigDecimal("2.34"),
+//                tokenType = TokenType.MATIC
+//            ),
+//            ListingCreateRequest(
+//                nftId = 3L,
+//                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+//                createdDate = now.plusSeconds(30),
+//                endDate = now.plusDays(2),
+//                price = BigDecimal("3.45"),
+//                tokenType = TokenType.MATIC
+//            ),
+//            ListingCreateRequest(
+//                nftId = 4L,
+//                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+//                createdDate = now.plusSeconds(40),
+//                endDate = now.plusDays(3),
+//                price = BigDecimal("3.45"),
+//                tokenType = TokenType.MATIC
+//            ),
+//            ListingCreateRequest(
+//                nftId = 5L,
+//                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+//                createdDate = now.plusSeconds(40),
+//                endDate = now.plusDays(3),
+//                price = BigDecimal("3.45"),
+//                tokenType = TokenType.MATIC
+//            ),
+//            ListingCreateRequest(
+//                nftId = 6L,
+//                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+//                createdDate = now.plusMinutes(30),
+//                endDate = now.plusDays(3),
+//                price = BigDecimal("3.45"),
+//                tokenType = TokenType.MATIC
+//            ),
+//            ListingCreateRequest(
+//                nftId = 7L,
+//                address = "0x03d94c6cc4f435d72d53e829bc172a6a72869",
+//                createdDate = now.plusMinutes(20),
+//                endDate = now.plusSeconds(50),
+//                price = BigDecimal("3.45"),
+//                tokenType = TokenType.MATIC
+//            )
+//
         )
 
         // 비동기로 모든 Listing 생성
@@ -144,9 +128,10 @@ class MarketServiceTest(
         id = this.id!!,
         nftId = this.nftId,
         address = this.address,
-        createdDateTime = this.createdDate!!,
+        createdDateTime = this.createdDate,
         endDateTime =  this.endDate,
         price = this.price,
+        active = false,
         tokenType = this.tokenType
     )
 
@@ -168,7 +153,8 @@ class MarketServiceTest(
 
     @Test
     fun hello () {
-        println("heelo")
+        val res = walletApiService.getAccountNftByAddress1(wallet = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867", nftId = 1L).block()
+        println("res : s" + res.toString())
     }
 
 }

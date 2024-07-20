@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@EnableScheduling
+//@EnableScheduling
 class MarketApplication
 
 fun main(args: Array<String>) {

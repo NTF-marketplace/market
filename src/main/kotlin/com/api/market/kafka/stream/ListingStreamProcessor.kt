@@ -32,7 +32,6 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
         }
 
 
-        // 상태 저장소 추가
         streamsBuilder.addStateStore(
             Stores.keyValueStoreBuilder(
                 Stores.persistentKeyValueStore("activation-store"),
@@ -54,18 +53,21 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
             Consumed.with(Serdes.String(), listingSerde)
         )
 
-        // 활성화 처리
         val activatedStream = listingStream
             .transform(TransformerSupplier { ActivationProcessor() }, "activation-store")
 
+        activatedStream
+            .filter { _, listing -> listing.active }
+            .to("activated-listing-events", Produced.with(Serdes.String(), listingSerde))
+
         // 만료 처리
-        val expiredStream = listingStream
+        val expiredStream = activatedStream
             .transform(TransformerSupplier { ExpirationProcessor() }, "expiration-store")
 
-        // 두 스트림 병합
-        val mergedStream = activatedStream.merge(expiredStream)
+        expiredStream
+            .filter { _, listing -> !listing.active }
+            .to("processed-listing-events", Produced.with(Serdes.String(), listingSerde))
 
-        mergedStream.to("processed-listing-events", Produced.with(Serdes.String(), listingSerde))
     }
 
 }

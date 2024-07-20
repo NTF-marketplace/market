@@ -3,47 +3,89 @@ package com.api.market.kafka.stream.processor
 import com.api.market.domain.listing.Listing
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.Transformer
-import org.apache.kafka.streams.kstream.ValueTransformerWithKey
-import org.apache.kafka.streams.processor.Cancellable
 import org.apache.kafka.streams.processor.ProcessorContext
 import org.apache.kafka.streams.processor.PunctuationType
 import org.apache.kafka.streams.state.KeyValueStore
-import org.apache.kafka.streams.state.TimestampedKeyValueStore
-import org.apache.kafka.streams.state.ValueAndTimestamp
+import org.slf4j.LoggerFactory
 import java.time.Duration
+import java.util.*
 
 class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listing>> {
     private lateinit var context: ProcessorContext
     private lateinit var stateStore: KeyValueStore<String, Listing>
+    private val scheduledExpirations = PriorityQueue<ScheduledExpiration>(compareBy { it.expirationTime })
+    private var nextScheduledTime: Long = Long.MAX_VALUE
+    private val minProcessInterval = 1000L
+
+    private val logger = LoggerFactory.getLogger(ExpirationProcessor::class.java)
+
+    data class ScheduledExpiration(val key: String, val expirationTime: Long)
 
     override fun init(context: ProcessorContext) {
         this.context = context
         this.stateStore = context.getStateStore("expiration-store") as KeyValueStore<String, Listing>
+        scheduleNextExpiration()
     }
 
-    override fun transform(key: String, listing: Listing): KeyValue<String, Listing>? {
-        println("ExpirationProcessor - inside transform key: $key")
-        println("ExpirationProcessor - inside transform listing: $listing")
+    override fun transform(key: String, listing: Listing): KeyValue<String, Listing> {
         val now = context.timestamp()
+        logger.info("ExpirationProcessor received listing: $key, endDate: ${listing.endDate}, now: $now, active: ${listing.active}")
+
         if (now >= listing.endDate && listing.active) {
-            val expiredListing = listing.copy(active = false)
-            stateStore.put(key, expiredListing)
-            return KeyValue(key, expiredListing)
+            logger.info("Immediate expiration for listing: $key")
+            return expireListing(key, listing)
         }
-        stateStore.put(key, listing)
-        context.schedule(Duration.ofMillis(listing.endDate - now), PunctuationType.WALL_CLOCK_TIME) { _ ->
-            println("ExpirationProcessor - execute schedule")
-            val storedListing = stateStore.get(key)
-            println("ExpirationProcessor - storedListing: $storedListing")
-            if (storedListing != null && storedListing.active) {
-                println("ExpirationProcessor - Expiring listing")
-                val expiredListing = storedListing.copy(active = false)
-                println("ExpirationProcessor - expiredListing: $expiredListing")
-                stateStore.put(key, expiredListing)
-                context.forward(key, expiredListing)
+
+        if (listing.active) {
+            stateStore.put(key, listing)
+            scheduledExpirations.add(ScheduledExpiration(key, listing.endDate))
+
+            if (listing.endDate < nextScheduledTime) {
+                scheduleNextExpiration()
             }
         }
-        return null
+
+        // 변경되지 않은 리스팅도 그대로 전달
+        return KeyValue(key, listing)
+    }
+
+
+
+    private fun scheduleNextExpiration() {
+        val nextExpiration = scheduledExpirations.peek()
+        if (nextExpiration != null) {
+            nextScheduledTime = nextExpiration.expirationTime
+            val now = context.timestamp()
+            val delay = maxOf(nextScheduledTime - now, minProcessInterval)
+            logger.info("Scheduling next batch expiration at: ${now + delay}")
+            context.schedule(Duration.ofMillis(delay), PunctuationType.WALL_CLOCK_TIME, this::processExpirations)
+        }
+    }
+
+    private fun processExpirations(timestamp: Long) {
+        logger.info("Starting batch expiration process at: $timestamp")
+        var expiredCount = 0
+        while (scheduledExpirations.isNotEmpty() && scheduledExpirations.peek().expirationTime <= timestamp) {
+            val expiration = scheduledExpirations.poll()
+            val listing = stateStore.get(expiration.key)
+            if (listing != null && listing.active) {
+                val expiredListing = expireListing(expiration.key, listing).value
+                context.forward(expiration.key, expiredListing)
+                expiredCount++
+                logger.info("Batch expired listing: ${expiration.key}")
+            } else {
+                // 이미 만료되었거나 존재하지 않는 리스팅 제거
+                stateStore.delete(expiration.key)
+            }
+        }
+        logger.info("Batch expiration completed. Total expired: $expiredCount")
+        scheduleNextExpiration()
+    }
+
+    private fun expireListing(key: String, listing: Listing): KeyValue<String, Listing> {
+        val expiredListing = listing.copy(active = false)
+        stateStore.put(key, expiredListing)
+        return KeyValue(key, expiredListing)
     }
 
     override fun close() {}

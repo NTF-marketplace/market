@@ -25,4 +25,17 @@ class WalletApiService(
             .retrieve()
             .bodyToMono(Boolean::class.java)
     }
+
+    fun getAccountNftByAddress1(wallet: String, nftId: Long): Mono<Boolean> {
+        return webClient.get()
+            .uri {
+                it.path("v1/account/has/nft")
+                    .queryParam("address", wallet)
+                    .queryParam("nftId", nftId)
+                    .build()
+            }
+            .retrieve()
+            .bodyToMono(Boolean::class.java)
+
+    }
 }

@@ -16,6 +16,6 @@ class MarketEventListener(
 
     @EventListener
     fun listingCanceled(event: ListingCanceledEvent) {
-        provider.listingCancelSend(event.nftIds)
+        provider.listingCancelSend(event.listing)
     }
 }

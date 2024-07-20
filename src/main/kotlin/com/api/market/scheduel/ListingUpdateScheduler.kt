@@ -9,9 +9,9 @@ import java.time.Instant
 class ListingUpdateScheduler(
     private val listingService: ListingService,
 ) {
-    @Scheduled(fixedRate = 60000)
-    fun batchCancelTask() {
-        val time = Instant.now().toEpochMilli()
-        listingService.batchCancel(time).subscribe()
-    }
+//    @Scheduled(fixedRate = 60000)
+//    fun batchCancelTask() {
+//        val time = Instant.now().toEpochMilli()
+//        listingService.batchCancel(time).subscribe()
+//    }
 }

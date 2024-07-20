@@ -30,6 +30,7 @@ class ActivationProcessor : Transformer<String, Listing, KeyValue<String, Listin
 
     override fun transform(key: String, listing: Listing): KeyValue<String, Listing>? {
         val now = context.timestamp()
+
         if (now >= listing.createdDate && !listing.active) {
             logger.info("Immediate activation for listing: $key")
             return activateListing(key, listing)

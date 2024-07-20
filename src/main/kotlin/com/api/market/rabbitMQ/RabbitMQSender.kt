@@ -10,10 +10,11 @@ class RabbitMQSender(
 ) {
 
     fun listingSend(listing: ListingResponse) {
+        println("몇번 보내지는가?")
         rabbitTemplate.convertAndSend("listingExchange", "listingRoutingKey", listing)
     }
 
-    fun listingCancelSend(nftIds: List<Long>) {
-        rabbitTemplate.convertAndSend("listingCancelExchange", "listingCancelRoutingKey", nftIds)
+    fun listingCancelSend(listing: ListingResponse) {
+        rabbitTemplate.convertAndSend("listingCancelExchange", "listingCancelRoutingKey", listing)
     }
 }

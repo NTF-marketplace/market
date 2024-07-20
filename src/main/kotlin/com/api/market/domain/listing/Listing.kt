@@ -25,11 +25,9 @@ data class Listing @JsonCreator constructor(
     @JsonProperty("price") val price: BigDecimal,
     @JsonProperty("tokenType") val tokenType: TokenType
 ) {
-    fun update(updateRequest: ListingUpdateRequest): Listing {
+    fun update(updateRequest: Listing): Listing {
         return this.copy(
-            endDate = updateRequest.endDate.toInstant().toEpochMilli(),
-            price = updateRequest.price.toBigDecimal(),
-            tokenType = updateRequest.tokenType
+            active = updateRequest.active
         )
     }
 

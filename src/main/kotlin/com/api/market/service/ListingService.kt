@@ -21,15 +21,6 @@ class ListingService(
     private val kafkaProducer: KafkaProducer,
 ) {
 
-    // fun getPriceHistory(nftId: Long) : Flux<ListingResponse> {
-    //     return listingRepository.findAllByNftIdOrderByCreatedAt(nftId).map { it.toResponse() }
-    // }
-    //
-    // fun getListingByNftId(nftId: Long): Mono<ListingResponse> {
-    //     return listingRepository.findByNftIdAndActiveTrue(nftId).map { it.toResponse() }
-    // }
-
-
     fun create(request: ListingCreateRequest): Mono<Listing> {
         return walletApiService.getAccountNftByAddress(request.address, request.nftId)
             .flatMap { nftExists ->
@@ -39,15 +30,20 @@ class ListingService(
                     Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
                 }
             }
-            .doOnSuccess {
-              eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse()))
-            }
     }
 
+    fun createUpdate(listing: Listing): Mono<Listing> {
+        return listingRepository.findById(listing.id!!)
+            .map { it.update(listing) }
+            .flatMap { listingRepository.save(it) }
+            .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
+    }
 
-    fun createtest(request: ListingCreateRequest): Mono<Listing> {
-        return saveListing(request)
-//            .doOnSuccess { kafkaProducer.sendListing(it) }
+    fun deleteUpdate(listing: Listing): Mono<Listing> {
+        return listingRepository.findById(listing.id!!)
+            .map { it.update(listing) }
+            .flatMap { listingRepository.save(it) }
+            .doOnSuccess { eventPublisher.publishEvent(ListingCanceledEvent(this,it.toResponse())) }
     }
 
 
@@ -56,20 +52,10 @@ class ListingService(
             .map { it.cancel() }
             .flatMap { listingRepository.save(it) }
             .doOnSuccess {
-                eventPublisher.publishEvent(ListingCanceledEvent(this, listOf(id)))
+                eventPublisher.publishEvent(ListingCanceledEvent(this, it.toResponse()))
             }.then()
     }
 
-    fun batchCancel(time: Long) : Mono<Void> {
-        return listingRepository.findAllByEndDateLessThanEqualAndActiveTrueOrderByEndDateAsc(time)
-            .map { it.cancel() }
-            .flatMap { listingRepository.save(it) }
-            .mapNotNull { it.nftId }
-            .collectList()
-            .doOnSuccess {
-                eventPublisher.publishEvent(ListingCanceledEvent(this, it))
-            }.then()
-    }
 
     fun saveListing(request: ListingCreateRequest): Mono<Listing> {
         return listingRepository.existsByNftIdAndAddressAndActiveTrue(request.nftId, request.address)
@@ -100,6 +86,7 @@ class ListingService(
         address = this.address,
         createdDateTime = this.createdDate,
         endDateTime =  this.endDate,
+        active = this.active,
         price = this.price,
         tokenType = this.tokenType
     )
