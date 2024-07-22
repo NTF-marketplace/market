@@ -8,6 +8,7 @@ import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
+import com.api.market.rabbitMQ.RabbitMQSender
 import com.api.market.service.ListingService
 import com.api.market.service.WalletApiService
 import org.junit.jupiter.api.Test
@@ -28,6 +29,7 @@ class MarketServiceTest(
     @Autowired private val eventPublisher: ApplicationEventPublisher,
     @Autowired private val kafkaProducer: KafkaProducer,
     @Autowired private val walletApiService: WalletApiService,
+    @Autowired private val rabbitMQSender: RabbitMQSender,
 ) {
 
     // @Test
@@ -52,7 +54,7 @@ class MarketServiceTest(
             ListingCreateRequest(
                 nftId = 2L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-                createdDate = now.plusSeconds(30),
+                createdDate = now.plusSeconds(20),
                 endDate = now.plusDays(3),
                 price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
