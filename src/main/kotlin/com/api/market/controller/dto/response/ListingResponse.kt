@@ -9,6 +9,7 @@ data class ListingResponse(
     val address: String,
     val createdDateTime: Long,
     val endDateTime: Long,
+    val active: Boolean,
     val price: BigDecimal,
     val tokenType: TokenType
 )

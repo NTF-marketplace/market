@@ -21,6 +21,8 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.apache.kafka:kafka-streams")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.postgresql:r2dbc-postgresql:1.0.4.RELEASE")

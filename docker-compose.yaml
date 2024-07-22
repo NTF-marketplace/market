@@ -11,3 +11,22 @@ services:
       - '5436:5432'
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  kafka:
+    image: bitnami/kafka:latest
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_NODE_ID=1
+      - KAFKA_LOG_DIRS=/bitnami/kafka/data
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_CLUSTER_ID=gKMtZmflQKOC26NzMJBPPA
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+    volumes:
+      - ./kafka_data:/bitnami/kafka/data

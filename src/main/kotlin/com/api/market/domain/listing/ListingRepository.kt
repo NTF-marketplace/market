@@ -8,11 +8,11 @@ interface ListingRepository: R2dbcRepository<Listing,Long> {
 
     fun existsByNftIdAndAddressAndActiveTrue(nftId: Long, address: String): Mono<Boolean>
 
-    fun findByNftIdAndActiveTrue(nftId: Long): Mono<Listing>
-
-    fun findByAddressAndActiveTrue(address: String): Flux<Listing>
-
-    fun findAllByNftIdOrderByCreatedAt(nftId: Long): Flux<Listing>
+    // fun findByNftIdAndActiveTrue(nftId: Long): Mono<Listing>
+    //
+    // fun findByAddressAndActiveTrue(address: String): Flux<Listing>
+    //
+    // fun findAllByNftIdOrderByCreatedAt(nftId: Long): Flux<Listing>
 
     fun findAllByEndDateLessThanEqualAndActiveTrueOrderByEndDateAsc(endDateTime: Long): Flux<Listing>
 
