@@ -16,9 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.test.context.ActiveProfiles
+import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZonedDateTime
+import java.util.concurrent.CountDownLatch
 import kotlin.time.Duration
 
 @SpringBootTest
@@ -32,19 +35,32 @@ class MarketServiceTest(
     @Autowired private val rabbitMQSender: RabbitMQSender,
 ) {
 
-    // @Test
-    // fun createListing() {
-    //
-    //     val request = ListingCreateRequest(
-    //         nftId = 3L,
-    //         address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-    //         endDate = ZonedDateTime.now().plusDays(3),
-    //         price = 0.23,
-    //         tokenType =  TokenType.MATIC
-    //     )
-    //     listingService.create(request).block()
-    // }
 
+    @Test
+    fun createListing() {
+        val latch = CountDownLatch(1000)
+
+        for (i in 0 until 1000) {
+            val request = Listing(
+                nftId = 1L + i,
+                address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
+                createdDate = System.currentTimeMillis() + (i * 10 * 1000),
+                endDate = System.currentTimeMillis() + (i * 30 * 1000),
+                price = BigDecimal(3.8),
+                tokenType = TokenType.MATIC,
+                active = false
+            )
+
+            Mono.fromCallable {
+                kafkaProducer.sendListing(request).block()
+                latch.countDown()
+            }
+                .subscribeOn(Schedulers.parallel())
+                .subscribe()
+        }
+
+        latch.await() // 모든 요청이 완료될 때까지 대기
+    }
 
 
     @Test

@@ -11,10 +11,7 @@ import org.apache.kafka.streams.kstream.Produced
 import org.springframework.kafka.support.serializer.JsonSerde
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.TransformerSupplier
-import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier
-import org.apache.kafka.streams.state.StoreBuilder
 import org.apache.kafka.streams.state.Stores
-import org.apache.kafka.streams.state.TimestampedKeyValueStore
 import org.springframework.kafka.support.serializer.JsonSerializer
 import org.springframework.stereotype.Component
 

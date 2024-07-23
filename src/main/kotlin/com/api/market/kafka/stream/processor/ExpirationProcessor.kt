@@ -29,10 +29,8 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
 
     override fun transform(key: String, listing: Listing): KeyValue<String, Listing> {
         val now = context.timestamp()
-        logger.info("ExpirationProcessor received listing: $key, endDate: ${listing.endDate}, now: $now, active: ${listing.active}")
 
         if (now >= listing.endDate && listing.active) {
-            logger.info("Immediate expiration for listing: $key")
             return expireListing(key, listing)
         }
 
@@ -45,7 +43,6 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
             }
         }
 
-        // 변경되지 않은 리스팅도 그대로 전달
         return KeyValue(key, listing)
     }
 
@@ -57,13 +54,12 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
             nextScheduledTime = nextExpiration.expirationTime
             val now = context.timestamp()
             val delay = maxOf(nextScheduledTime - now, minProcessInterval)
-            logger.info("Scheduling next batch expiration at: ${now + delay}")
+
             context.schedule(Duration.ofMillis(delay), PunctuationType.WALL_CLOCK_TIME, this::processExpirations)
         }
     }
 
     private fun processExpirations(timestamp: Long) {
-        logger.info("Starting batch expiration process at: $timestamp")
         var expiredCount = 0
         while (scheduledExpirations.isNotEmpty() && scheduledExpirations.peek().expirationTime <= timestamp) {
             val expiration = scheduledExpirations.poll()
@@ -72,13 +68,10 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
                 val expiredListing = expireListing(expiration.key, listing).value
                 context.forward(expiration.key, expiredListing)
                 expiredCount++
-                logger.info("Batch expired listing: ${expiration.key}")
             } else {
-                // 이미 만료되었거나 존재하지 않는 리스팅 제거
                 stateStore.delete(expiration.key)
             }
         }
-        logger.info("Batch expiration completed. Total expired: $expiredCount")
         scheduleNextExpiration()
     }
 
