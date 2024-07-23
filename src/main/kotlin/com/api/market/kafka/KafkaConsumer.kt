@@ -1,11 +1,8 @@
 package com.api.market.kafka
 
 import com.api.market.domain.listing.Listing
-import com.api.market.domain.listing.ListingRepository
-import com.api.market.event.ListingUpdatedEvent
 import com.api.market.service.ListingService
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.kafka.support.KafkaHeaders
 import org.springframework.messaging.handler.annotation.Header
@@ -30,7 +27,6 @@ class KafkaConsumer(
             logger.error("Received null activated listing")
             return
         }
-        logger.info("Received activated listing: $listing - Topic: $topic, Partition: $partition, Offset: $offset, Timestamp: $timestamp")
         updateListing(listing)
     }
 
@@ -46,7 +42,6 @@ class KafkaConsumer(
             logger.error("Received null processed listing")
             return
         }
-        logger.info("Received processed listing: $listing - Topic: $topic, Partition: $partition, Offset: $offset, Timestamp: $timestamp")
         updateListing(listing)
     }
 
@@ -57,10 +52,5 @@ class KafkaConsumer(
         else {
             listingService.deleteUpdate(listing).subscribe()
         }
-//        listingService.update(listing)
-//            .subscribe(
-//                { logger.info("Successfully updated listing: ${listing.id}, active: ${listing.active}") },
-//                { error -> logger.error("Failed to update listing: ${listing.id}", error) }
-//            )
     }
 }
