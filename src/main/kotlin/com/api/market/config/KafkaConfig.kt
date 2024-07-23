@@ -40,19 +40,19 @@ class KafkaConfig {
     @Bean
     fun listingEventsTopic(): NewTopic = TopicBuilder.name("listing-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(2)
         .build()
 
     @Bean
     fun processedListingEventsTopic(): NewTopic = TopicBuilder.name("processed-listing-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(2)
         .build()
 
     @Bean
     fun activatedListingEventsTopic(): NewTopic = TopicBuilder.name("activated-listing-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(2)
         .build()
 
     @Bean
