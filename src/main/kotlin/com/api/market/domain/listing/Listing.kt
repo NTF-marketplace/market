@@ -1,6 +1,6 @@
 package com.api.market.domain.listing
 
-import com.api.market.controller.dto.request.ListingUpdateRequest
+import com.api.market.enums.ListingStatusType
 import com.api.market.enums.TokenType
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 import org.springframework.data.annotation.Id
 import org.springframework.data.relational.core.mapping.Table
 import java.math.BigDecimal
-import java.time.Instant
 
 
 @JsonSerialize
@@ -21,17 +20,17 @@ data class Listing @JsonCreator constructor(
     @JsonProperty("address") val address: String,
     @JsonProperty("createdDate") val createdDate: Long,
     @JsonProperty("endDate") val endDate: Long,
-    @JsonProperty("active") val active: Boolean,
+    @JsonProperty("statusType") val statusType: ListingStatusType,
     @JsonProperty("price") val price: BigDecimal,
     @JsonProperty("tokenType") val tokenType: TokenType
 ) {
     fun update(updateRequest: Listing): Listing {
         return this.copy(
-            active = updateRequest.active
+            statusType = updateRequest.statusType
         )
     }
 
-    fun cancel(): Listing {
-        return this.copy(active = false)
+    fun cancel(status: ListingStatusType): Listing {
+        return this.copy(statusType = status)
     }
 }

@@ -14,8 +14,8 @@ class KafkaProducer(
     private val logger = LoggerFactory.getLogger(KafkaProducer::class.java)
 
     fun sendListing(listing: Listing): Mono<Void> {
-        return Mono.create { sink ->
-            val future = kafkaTemplate.send("listing-events", listing.nftId.toString(), listing)
+        return Mono.create{ sink ->
+            val future = kafkaTemplate.send("listing-events", listing.id.toString(), listing)
             future.whenComplete { result, ex ->
                 if (ex == null) {
                     logger.info("Sent listing successfully: ${result?.recordMetadata}")
@@ -23,6 +23,19 @@ class KafkaProducer(
                 } else {
                     logger.error("Failed to send listing", ex)
                     sink.error(ex)
+                }
+            }
+        }
+    }
+
+    fun sendCancellation(listing: Listing): Mono<Void> {
+        return Mono.fromRunnable {
+            val future = kafkaTemplate.send("listing-events", listing.id.toString(), listing)
+            future.whenComplete { result, exception ->
+                if (exception == null) {
+                    logger.info("Sent cancellation message for listing ID: ${listing.id}, offset: ${result.recordMetadata.offset()}")
+                } else {
+                    logger.error("Failed to send cancellation message for listing ID: ${listing.id}", exception)
                 }
             }
         }

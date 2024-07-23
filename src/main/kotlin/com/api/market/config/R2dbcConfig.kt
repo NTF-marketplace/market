@@ -1,8 +1,10 @@
 package com.api.market.config
 
 import com.api.market.enums.ChainType
+import com.api.market.enums.ListingStatusType
 import com.api.market.enums.TokenType
 import com.api.market.util.ChainTypeConvert
+import com.api.market.util.ListingStatusTypeConvert
 import com.api.market.util.StringToEnumConverter
 import com.api.market.util.TokenTypeConvert
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration
@@ -36,6 +38,7 @@ class R2dbcConfig : AbstractR2dbcConfiguration() {
                 EnumCodec.builder()
                     .withEnum("chain_type", ChainType::class.java)
                     .withEnum("token_type", TokenType::class.java)
+                    .withEnum("listing_status_type", ListingStatusType::class.java)
                     .build()
             )
             .build()
@@ -49,6 +52,8 @@ class R2dbcConfig : AbstractR2dbcConfiguration() {
         converters.add(StringToEnumConverter(ChainType::class.java))
         converters.add(TokenTypeConvert(TokenType::class.java))
         converters.add(StringToEnumConverter(TokenType::class.java))
+        converters.add(ListingStatusTypeConvert(ListingStatusType::class.java))
+        converters.add(StringToEnumConverter(ListingStatusType::class.java))
         return R2dbcCustomConversions(storeConversions, converters)
     }
 

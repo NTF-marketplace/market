@@ -1,6 +1,7 @@
 package com.api.market.kafka.stream
 
 import com.api.market.domain.listing.Listing
+import com.api.market.enums.ListingStatusType
 import com.api.market.kafka.stream.processor.ActivationProcessor
 import com.api.market.kafka.stream.processor.ExpirationProcessor
 import jakarta.annotation.PostConstruct
@@ -54,7 +55,10 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
             .transform(TransformerSupplier { ActivationProcessor() }, "activation-store")
 
         activatedStream
-            .filter { _, listing -> listing.active }
+            .filter { _, listing ->
+                listing.statusType == ListingStatusType.RESERVATION ||
+                        listing.statusType == ListingStatusType.RESERVATION_CANCEL
+            }
             .to("activated-listing-events", Produced.with(Serdes.String(), listingSerde))
 
         // 만료 처리
@@ -62,9 +66,11 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
             .transform(TransformerSupplier { ExpirationProcessor() }, "expiration-store")
 
         expiredStream
-            .filter { _, listing -> !listing.active }
+            .filter { _, listing ->
+                listing.statusType == ListingStatusType.LISTING ||
+                        listing.statusType == ListingStatusType.CANCEL
+            }
             .to("processed-listing-events", Produced.with(Serdes.String(), listingSerde))
-
     }
 
 }
