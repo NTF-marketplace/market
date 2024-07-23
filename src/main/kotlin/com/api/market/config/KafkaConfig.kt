@@ -1,6 +1,7 @@
 package com.api.market.config
 
 import com.api.market.domain.listing.Listing
+import com.api.market.kafka.stream.storage.RocksDBConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -108,7 +109,8 @@ class KafkaConfig {
             StreamsConfig.PROCESSING_GUARANTEE_CONFIG to StreamsConfig.EXACTLY_ONCE_V2,
             StreamsConfig.COMMIT_INTERVAL_MS_CONFIG to "100",
             StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG to WallclockTimestampExtractor::class.java,
-            StreamsConfig.NUM_STREAM_THREADS_CONFIG to 4
+            StreamsConfig.NUM_STREAM_THREADS_CONFIG to 4,
+            "rocksdb.config.setter" to RocksDBConfig::class.java.name
 
         )
         return KafkaStreamsConfiguration(props)
