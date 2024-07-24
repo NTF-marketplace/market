@@ -72,7 +72,7 @@ class MarketServiceTest(
                 nftId = 2L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
                 createdDate = now.plusSeconds(60),
-                endDate = now.plusDays(10),
+                endDate = now.plusDays(100),
                 price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
             )
@@ -109,17 +109,16 @@ class MarketServiceTest(
             ListingCreateRequest(
                 nftId = 2L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-                createdDate = now.plusSeconds(300),
-                endDate = now.plusDays(10),
+                createdDate = now.plusSeconds(30),
+                endDate = now.plusDays(2),
                 price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
             ),
 
         )
 
-        // 비동기로 모든 Listing 생성
         val createdListings = listings.map { request ->
-            listingService.saveListing(request)
+            listingService.create(request)
         }.map { it.block() }
 
         Thread.sleep(360000)

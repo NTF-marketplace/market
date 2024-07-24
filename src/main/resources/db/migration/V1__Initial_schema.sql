@@ -27,7 +27,8 @@ CREATE TYPE listing_status_type AS ENUM (
     'RESERVATION',
     'LISTING',
     'RESERVATION_CANCEL',
-    'CANCEL'
+    'CANCEL',
+    'EXPIRED'
     );
 
 

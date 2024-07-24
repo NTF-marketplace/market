@@ -12,4 +12,4 @@ enum class ChainType {
 
 enum class TokenType { MATIC, ETH, BTC }
 
-enum class ListingStatusType { RESERVATION, LISTING, RESERVATION_CANCEL, CANCEL }
+enum class ListingStatusType { RESERVATION, LISTING, RESERVATION_CANCEL, CANCEL, EXPIRED }

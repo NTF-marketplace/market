@@ -46,8 +46,7 @@ class ListingService(
                     ListingStatusType.LISTING -> listing.copy(statusType = ListingStatusType.CANCEL)
                     else -> listing
                 }
-                kafkaProducer.sendCancellation(cancelledListing)
-                    .subscribe()
+                kafkaProducer.sendCancellation(cancelledListing).subscribe()
             }
             .then()
     }

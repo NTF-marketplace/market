@@ -55,11 +55,11 @@ class ActivationProcessor : Transformer<String, Listing, KeyValue<String, Listin
     }
 
     private fun scheduleActivation(key: String, listing: Listing) {
-        stateStore.put(key, listing)
-        scheduledActivations.add(ScheduledActivation(key, listing.createdDate))
+        stateStore.put(key, listing) // 저장소저장
+        scheduledActivations.add(ScheduledActivation(key, listing.createdDate)) // 우선순위 큐에 저장
         logger.info("Scheduled activation - key: $key, activation time: ${listing.createdDate}")
-        if (listing.createdDate < nextScheduledTime) {
-            scheduleNextActivation()
+        if (listing.createdDate < nextScheduledTime) { // 다음 스케줄 시간과 비교해서 작다면
+            scheduleNextActivation() //  다음 스케줄 할당하고 지연스케줄 실행
         }
     }
 

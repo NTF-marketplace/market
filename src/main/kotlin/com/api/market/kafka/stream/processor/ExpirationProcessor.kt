@@ -112,7 +112,7 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
     }
 
     private fun expireListing(key: String, listing: Listing): KeyValue<String, Listing> {
-        val expiredListing = listing.copy(statusType = ListingStatusType.CANCEL)
+        val expiredListing = listing.copy(statusType = ListingStatusType.EXPIRED)
         stateStore.put(key, expiredListing)
         return KeyValue(key, expiredListing)
     }

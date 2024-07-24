@@ -33,6 +33,6 @@ class RabbitMQConfig {
     @Bean
     fun listingExchange() = createFanoutExchange("listingExchange")
 
-    @Bean
-    fun listingCancelExchange() = createFanoutExchange("listingCancelExchange")
+    // @Bean
+    // fun listingCancelExchange() = createFanoutExchange("listingCancelExchange")
 }
