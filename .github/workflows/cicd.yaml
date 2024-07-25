@@ -1,0 +1,201 @@
+name: Create and publish a container image, update helm chart 'appVersion'
+
+on:
+  push:
+    branches: ["main", "develop", "feat/cicd"]
+
+#############################################
+#
+# Branch
+# - develop > GitHub packages
+# - main    > Amazon ECR
+#
+#############################################
+
+jobs:
+  develop:
+    ### Reference
+    # https://docs.github.com/ko/actions/publishing-packages/publishing-docker-images#github-packages%EC%97%90-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B2%8C%EC%8B%9C
+    ###
+
+    # if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/feat/cicd'
+    name: Build and Push Container Image to GitHub Container Registry
+    runs-on: ubuntu-latest
+    env:
+      REPOSITORY: market
+      ENVIRONMENT: dev
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the GitHub container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Container image
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: type=sha
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '21'
+    
+      - name: Build JAR
+        run: ./gradlew clean build -x test
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      # ### Error
+      # # [message] Failed to persist attestation
+      # # Feature not available for the NTF-marketplace organization.
+      # # To enable this feature, please upgrade the billing plan, or make this repository public.
+      # # https://docs.github.com/rest/repos/repos#create-an-attestation
+      # ###
+      # - name: Generate artifact attestation
+      #   uses: actions/attest-build-provenance@v1
+      #   with:
+      #     subject-name: ${{ env.REGISTRY }}/${{ github.repository }}
+      #     subject-digest: ${{ steps.push.outputs.digest }}
+      #     push-to-registry: true
+
+      - name: Checkout Private Repository
+        uses: actions/checkout@v4
+        with:
+          repository: NTF-marketplace/devops
+          fetch-depth: 0
+          ref: develop
+          token: ${{ secrets.PAT }}
+
+      - name: Replace image tag in helm values.yaml
+        uses: mikefarah/yq@master
+        env:
+          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+        with:
+          cmd: yq eval -i '.image.tag = env(IMAGE_VERSION)' 'chart/${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }}/values.yaml'
+
+      - name: Commit helm chart changes
+        env:
+          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cd chart/${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }}
+          git config --global user.email "hun5879@naver.com"
+          git config --global user.name "dongdorrong"
+
+          git add values.yaml
+          git commit --message "ci: update ${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }} image tag to $IMAGE_VERSION"
+
+      - name: Push commit
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.PAT }}
+          repository: NTF-marketplace/devops
+          branch: develop
+
+  main:
+    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/feat/cicd'
+    name: Build and Push Container Image to Amazon ECR
+    runs-on: ubuntu-latest
+    env:
+      REPOSITORY: market
+      ENVIRONMENT: prod
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata (tags, labels) for Container image
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }}
+          tags: type=sha
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '21'
+    
+      - name: Build JAR
+        run: ./gradlew clean build -x test
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Checkout Private Repository
+        uses: actions/checkout@v4
+        with:
+          repository: NTF-marketplace/devops
+          fetch-depth: 0
+          ref: develop
+          token: ${{ secrets.PAT }}
+
+      - name: Replace image tag in helm values.yaml
+        uses: mikefarah/yq@master
+        env:
+          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+        with:
+          cmd: yq eval -i '.image.tag = env(IMAGE_VERSION)' 'chart/${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }}/values.yaml'
+
+      - name: Commit helm chart changes
+        env:
+          IMAGE_VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          cd chart/${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }}
+          git config --global user.email "hun5879@naver.com"
+          git config --global user.name "dongdorrong"
+
+          git add values.yaml
+          git commit --message "ci: update ${{ env.REPOSITORY }}_${{ env.ENVIRONMENT }} image tag to $IMAGE_VERSION"
+
+      - name: Push commit
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.PAT }}
+          repository: NTF-marketplace/devops
+          branch: develop
