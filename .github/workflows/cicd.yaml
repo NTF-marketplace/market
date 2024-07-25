@@ -2,7 +2,7 @@ name: Create and publish a container image, update helm chart 'appVersion'
 
 on:
   push:
-    branches: ["main", "develop", "feat/cicd"]
+    branches: ["main", "develop"]
 
 #############################################
 #
@@ -18,8 +18,7 @@ jobs:
     # https://docs.github.com/ko/actions/publishing-packages/publishing-docker-images#github-packages%EC%97%90-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EA%B2%8C%EC%8B%9C
     ###
 
-    # if: github.ref == 'refs/heads/develop'
-    if: github.ref == 'refs/heads/feat/cicd'
+    if: github.ref == 'refs/heads/develop'
     name: Build and Push Container Image to GitHub Container Registry
     runs-on: ubuntu-latest
     env:
@@ -114,8 +113,7 @@ jobs:
           branch: develop
 
   main:
-    # if: github.ref == 'refs/heads/main'
-    if: github.ref == 'refs/heads/feat/cicd'
+    if: github.ref == 'refs/heads/main'
     name: Build and Push Container Image to Amazon ECR
     runs-on: ubuntu-latest
     env:
