@@ -1,7 +1,7 @@
 package com.api.market.kafka.stream.processor
 
 import com.api.market.domain.listing.Listing
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.Transformer
 import org.apache.kafka.streams.processor.Cancellable
@@ -35,14 +35,14 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         logger.info("Transform called - key: $key, status: ${listing.statusType}, current time: $now")
 
         when (listing.statusType) {
-            ListingStatusType.LISTING -> {
+            StatusType.LISTING -> {
                 if (now >= listing.endDate) {
                     return expireListing(key, listing)
                 } else {
                     scheduleExpiration(key, listing)
                 }
             }
-            ListingStatusType.CANCEL -> {
+            StatusType.CANCEL -> {
                 return cancelListing(key, listing)
             }
             else -> {
@@ -100,7 +100,7 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         while (scheduledExpirations.isNotEmpty() && scheduledExpirations.peek().expirationTime <= timestamp) {
             val expiration = scheduledExpirations.poll()
             val listing = stateStore.get(expiration.key)
-            if (listing != null && listing.statusType == ListingStatusType.LISTING) {
+            if (listing != null && listing.statusType == StatusType.LISTING) {
                 val expiredListing = expireListing(expiration.key, listing).value
                 context.forward(expiration.key, expiredListing)
                 expiredCount++
@@ -112,7 +112,7 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
     }
 
     private fun expireListing(key: String, listing: Listing): KeyValue<String, Listing> {
-        val expiredListing = listing.copy(statusType = ListingStatusType.EXPIRED)
+        val expiredListing = listing.copy(statusType = StatusType.EXPIRED)
         stateStore.put(key, expiredListing)
         return KeyValue(key, expiredListing)
     }

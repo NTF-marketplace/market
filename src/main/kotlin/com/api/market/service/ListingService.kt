@@ -4,7 +4,7 @@ import com.api.market.controller.dto.request.ListingCreateRequest
 import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import org.springframework.context.ApplicationEventPublisher
@@ -42,8 +42,8 @@ class ListingService(
         return listingRepository.findById(id)
             .doOnNext { listing ->
                 val cancelledListing = when (listing.statusType) {
-                    ListingStatusType.RESERVATION -> listing.copy(statusType = ListingStatusType.RESERVATION_CANCEL)
-                    ListingStatusType.LISTING -> listing.copy(statusType = ListingStatusType.CANCEL)
+                    StatusType.RESERVATION -> listing.copy(statusType = StatusType.RESERVATION_CANCEL)
+                    StatusType.LISTING -> listing.copy(statusType = StatusType.CANCEL)
                     else -> listing
                 }
                 kafkaProducer.sendCancellation(cancelledListing).subscribe()
@@ -52,7 +52,7 @@ class ListingService(
     }
 
     fun saveListing(request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, ListingStatusType.LISTING)
+        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.LISTING)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
@@ -62,7 +62,7 @@ class ListingService(
                         address = request.address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
-                        statusType = ListingStatusType.RESERVATION, // 아직 리스팅 시작전
+                        statusType = StatusType.RESERVATION, // 아직 리스팅 시작전
                         price = request.price,
                         tokenType = request.tokenType
                     )

@@ -1,6 +1,6 @@
 package com.api.market.domain.listing
 
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -20,7 +20,7 @@ data class Listing @JsonCreator constructor(
     @JsonProperty("address") val address: String,
     @JsonProperty("createdDate") val createdDate: Long,
     @JsonProperty("endDate") val endDate: Long,
-    @JsonProperty("statusType") val statusType: ListingStatusType,
+    @JsonProperty("statusType") val statusType: StatusType,
     @JsonProperty("price") val price: BigDecimal,
     @JsonProperty("tokenType") val tokenType: TokenType
 ) {
@@ -30,7 +30,7 @@ data class Listing @JsonCreator constructor(
         )
     }
 
-    fun cancel(status: ListingStatusType): Listing {
+    fun cancel(status: StatusType): Listing {
         return this.copy(statusType = status)
     }
 }

@@ -1,7 +1,7 @@
 package com.api.market.kafka.stream.processor
 
 import com.api.market.domain.listing.Listing
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.Transformer
 import org.apache.kafka.streams.processor.Cancellable
@@ -35,14 +35,14 @@ class ActivationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         logger.info("Transform called - key: $key, status: ${listing.statusType}, current time: $now")
 
         when (listing.statusType) {
-            ListingStatusType.RESERVATION -> {
+            StatusType.RESERVATION -> {
                 if (now >= listing.createdDate) {
                     return activateListing(key, listing)
                 } else {
                     scheduleActivation(key, listing)
                 }
             }
-            ListingStatusType.RESERVATION_CANCEL -> {
+            StatusType.RESERVATION_CANCEL -> {
                 return cancelReservation(key, listing)
             }
             else -> {
@@ -103,8 +103,8 @@ class ActivationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         while (scheduledActivations.isNotEmpty() && scheduledActivations.peek().activationTime <= timestamp) {
             val activation = scheduledActivations.poll()
             val listing = stateStore.get(activation.key)
-            if (listing != null && listing.statusType == ListingStatusType.RESERVATION) {
-                val activatedListing = listing.copy(statusType = ListingStatusType.LISTING)
+            if (listing != null && listing.statusType == StatusType.RESERVATION) {
+                val activatedListing = listing.copy(statusType = StatusType.LISTING)
                 stateStore.put(activation.key, activatedListing)
                 context.forward(activation.key, activatedListing)
                 activatedCount++
@@ -114,7 +114,7 @@ class ActivationProcessor : Transformer<String, Listing, KeyValue<String, Listin
     }
 
     private fun activateListing(key: String, listing: Listing): KeyValue<String, Listing> {
-        val activatedListing = listing.copy(statusType = ListingStatusType.LISTING)
+        val activatedListing = listing.copy(statusType = StatusType.LISTING)
         stateStore.put(key, activatedListing)
         return KeyValue(key, activatedListing)
     }

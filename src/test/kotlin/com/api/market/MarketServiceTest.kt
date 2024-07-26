@@ -1,11 +1,10 @@
 package com.api.market
 
 import com.api.market.controller.dto.request.ListingCreateRequest
-import com.api.market.controller.dto.request.ListingUpdateRequest
 import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
@@ -21,10 +20,8 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.math.BigDecimal
-import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.concurrent.CountDownLatch
-import kotlin.time.Duration
 
 @SpringBootTest
 @ActiveProfiles("local")
@@ -50,7 +47,7 @@ class MarketServiceTest(
                 endDate = System.currentTimeMillis() + (i * 30 * 1000),
                 price = BigDecimal(3.8),
                 tokenType = TokenType.MATIC,
-                statusType = ListingStatusType.RESERVATION
+                statusType = StatusType.RESERVATION
             )
 
             Mono.fromCallable {
