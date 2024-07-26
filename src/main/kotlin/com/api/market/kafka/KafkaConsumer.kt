@@ -46,22 +46,6 @@ class KafkaConsumer(
         updateListing(listing)
     }
 
-    // @KafkaListener(topics = ["listing-cancellations"],
-    //     groupId = "market-group-cancellations",
-    //     containerFactory = "kafkaListenerContainerFactory")
-    // fun consumeListingCancellations(@Payload(required = false) listing: Listing?,
-    //                                 @Header(KafkaHeaders.RECEIVED_TOPIC) topic: String?,
-    //                                 @Header(KafkaHeaders.RECEIVED_PARTITION) partition: Int?,
-    //                                 @Header(KafkaHeaders.OFFSET) offset: Long?,
-    //                                 @Header(KafkaHeaders.RECEIVED_TIMESTAMP) timestamp: Long?) {
-    //     if (listing == null) {
-    //         logger.error("Received null cancellation event")
-    //         return
-    //     }
-    //     updateListing(listing)
-    // }
-
-
 
     private fun updateListing(listing: Listing) {
         listingService.update(listing).subscribe()

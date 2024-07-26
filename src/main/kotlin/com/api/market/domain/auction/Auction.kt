@@ -15,7 +15,7 @@ import java.math.BigDecimal
 @JsonDeserialize
 @Table("auction")
 data class Auction @JsonCreator constructor(
-    @JsonProperty("id") @Id val id : Long,
+    @JsonProperty("id") @Id val id : Long? = null,
     @JsonProperty("nftId") val nftId: Long,
     @JsonProperty("address") val address: String,
     @JsonProperty("createdDate") val createdDate: Long,

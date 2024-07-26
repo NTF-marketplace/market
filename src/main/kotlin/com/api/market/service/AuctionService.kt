@@ -3,6 +3,7 @@ package com.api.market.service
 import com.api.market.controller.dto.request.AuctionCreateRequest
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
+import com.api.market.enums.StatusType
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -24,26 +25,25 @@ class AuctionService(
     }
 
     fun saveAuction(request: AuctionCreateRequest): Mono<Auction> {
-        TODO()
-        // return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, request.)
-        //     .flatMap { exists ->
-        //         if (exists) {
-        //             Mono.empty()
-        //         } else {
-        //             val newListing = Listing(
-        //                 nftId = request.nftId,
-        //                 address = request.address,
-        //                 createdDate = request.createdDate.toInstant().toEpochMilli(),
-        //                 endDate = request.endDate.toInstant().toEpochMilli(),
-        //                 statusType = StatusType.RESERVATION, // 아직 리스팅 시작전
-        //                 price = request.startingPrice,
-        //                 tokenType = request.tokenType
-        //             )
-        //             auctionRepository.save(newListing)
-        //                 .doOnSuccess { savedListing ->
-        //                     // kafkaProducer.sendListing(savedListing).subscribe()
-        //                 }
-        //         }
-        //     }
+        return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, statusType = StatusType.RESERVATION)
+            .flatMap { exists ->
+                if (exists) {
+                    Mono.empty()
+                } else {
+                    val newAuction = Auction(
+                        nftId = request.nftId,
+                        address = request.address,
+                        createdDate = request.createdDate.toInstant().toEpochMilli(),
+                        endDate = request.endDate.toInstant().toEpochMilli(),
+                        statusType = StatusType.RESERVATION, // 아직 auction 시작전
+                        startingPrice = request.startingPrice,
+                        tokenType = request.tokenType,
+                    )
+                    auctionRepository.save(newAuction)
+                        .doOnSuccess {
+                            // kafkaProducer.sendListing(savedListing).subscribe()
+                        }
+                }
+            }
     }
 }

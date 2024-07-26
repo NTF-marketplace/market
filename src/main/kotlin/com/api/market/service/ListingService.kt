@@ -52,7 +52,7 @@ class ListingService(
     }
 
     fun saveListing(request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.LISTING)
+        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
