@@ -1,6 +1,9 @@
 package com.api.market.kafka
 
+import com.api.market.domain.ScheduleEntity
+import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
+import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -12,42 +15,46 @@ import org.springframework.stereotype.Service
 @Service
 class KafkaConsumer(
     private val listingService: ListingService,
+    private val auctionService: AuctionService,
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumer::class.java)
 
-    @KafkaListener(topics = ["activated-listing-events"],
+
+    @KafkaListener(topics = ["activated-events"],
         groupId = "market-group-activated",
         containerFactory = "kafkaListenerContainerFactory")
-    fun consumeActivatedListings(@Payload(required = false) listing: Listing?,
-                                 @Header(KafkaHeaders.RECEIVED_TOPIC) topic: String?,
-                                 @Header(KafkaHeaders.RECEIVED_PARTITION) partition: Int?,
-                                 @Header(KafkaHeaders.OFFSET) offset: Long?,
-                                 @Header(KafkaHeaders.RECEIVED_TIMESTAMP) timestamp: Long?) {
-        if (listing == null) {
-            logger.error("Received null activated listing")
+    fun consumeActivatedEvents(@Payload(required = false) scheduleEntity: ScheduleEntity?,
+                               @Header(KafkaHeaders.RECEIVED_TOPIC) topic: String?,
+                               @Header(KafkaHeaders.RECEIVED_PARTITION) partition: Int?,
+                               @Header(KafkaHeaders.OFFSET) offset: Long?,
+                               @Header(KafkaHeaders.RECEIVED_TIMESTAMP) timestamp: Long?) {
+        if (scheduleEntity == null) {
+            logger.error("Received null activated event")
             return
         }
-        println("consumer : " + listing.statusType)
-        updateListing(listing)
+        println("consumer : " + scheduleEntity.statusType)
+        updateScheduleEntity(scheduleEntity)
     }
-
-    @KafkaListener(topics = ["processed-listing-events"],
+    @KafkaListener(topics = ["processed-events"],
         groupId = "market-group-processed",
         containerFactory = "kafkaListenerContainerFactory")
-    fun consumeProcessedListings(@Payload(required = false) listing: Listing?,
-                                 @Header(KafkaHeaders.RECEIVED_TOPIC) topic: String?,
-                                 @Header(KafkaHeaders.RECEIVED_PARTITION) partition: Int?,
-                                 @Header(KafkaHeaders.OFFSET) offset: Long?,
-                                 @Header(KafkaHeaders.RECEIVED_TIMESTAMP) timestamp: Long?) {
-        if (listing == null) {
-            logger.error("Received null processed listing")
+    fun consumeProcessedEvents(@Payload(required = false) scheduleEntity: ScheduleEntity?,
+                               @Header(KafkaHeaders.RECEIVED_TOPIC) topic: String?,
+                               @Header(KafkaHeaders.RECEIVED_PARTITION) partition: Int?,
+                               @Header(KafkaHeaders.OFFSET) offset: Long?,
+                               @Header(KafkaHeaders.RECEIVED_TIMESTAMP) timestamp: Long?) {
+        if (scheduleEntity == null) {
+            logger.error("Received null processed event")
             return
         }
-        updateListing(listing)
+        updateScheduleEntity(scheduleEntity)
     }
 
 
-    private fun updateListing(listing: Listing) {
-        listingService.update(listing).subscribe()
+    private fun updateScheduleEntity(scheduleEntity: ScheduleEntity) {
+        when (scheduleEntity) {
+            is Listing -> listingService.update(scheduleEntity).subscribe()
+            //is Auction -> auctionService.update(scheduleEntity).subscribe()
+        }
     }
 }

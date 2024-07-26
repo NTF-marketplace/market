@@ -1,5 +1,6 @@
 package com.api.market.config
 
+import com.api.market.domain.ScheduleEntity
 import com.api.market.domain.listing.Listing
 import com.api.market.kafka.stream.storage.RocksDBConfig
 import org.apache.kafka.clients.admin.NewTopic
@@ -45,6 +46,12 @@ class KafkaConfig {
         .build()
 
     @Bean
+    fun auctionEventsTopic(): NewTopic = TopicBuilder.name("auction-events")
+        .partitions(4)
+        .replicas(2)
+        .build()
+
+    @Bean
     fun processedListingEventsTopic(): NewTopic = TopicBuilder.name("processed-listing-events")
         .partitions(4)
         .replicas(2)
@@ -80,7 +87,7 @@ class KafkaConfig {
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java.name,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java.name,
             JsonDeserializer.TRUSTED_PACKAGES to "*",
-            JsonDeserializer.VALUE_DEFAULT_TYPE to Listing::class.java.name
+            JsonDeserializer.VALUE_DEFAULT_TYPE to ScheduleEntity::class.java.name
         )
         return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(Listing::class.java, false))
     }

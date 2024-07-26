@@ -1,6 +1,6 @@
 package com.api.market.kafka.stream.processor
 
-import com.api.market.domain.listing.Listing
+import com.api.market.domain.ScheduleEntity
 import com.api.market.enums.StatusType
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.kstream.Transformer
@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.*
 
-class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listing>> {
+class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String, ScheduleEntity>> {
     private lateinit var context: ProcessorContext
-    private lateinit var stateStore: KeyValueStore<String, Listing>
+    private lateinit var stateStore: KeyValueStore<String, ScheduleEntity>
     private val scheduledExpirations = PriorityQueue<ScheduledExpiration>(compareBy { it.expirationTime })
     private var nextScheduledTime: Long = Long.MAX_VALUE
     private val minProcessInterval = 1000L
@@ -26,11 +26,11 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
 
     override fun init(context: ProcessorContext) {
         this.context = context
-        this.stateStore = context.getStateStore("expiration-store") as KeyValueStore<String, Listing>
+        this.stateStore = context.getStateStore("expiration-store") as KeyValueStore<String, ScheduleEntity>
         scheduleNextExpiration()
     }
 
-    override fun transform(key: String, listing: Listing): KeyValue<String, Listing> {
+    override fun transform(key: String, listing: ScheduleEntity): KeyValue<String, ScheduleEntity> {
         val now = context.timestamp()
         logger.info("Transform called - key: $key, status: ${listing.statusType}, current time: $now")
 
@@ -53,16 +53,16 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         return KeyValue(key, listing)
     }
 
-    private fun scheduleExpiration(key: String, listing: Listing) {
-        stateStore.put(key, listing)
-        scheduledExpirations.add(ScheduledExpiration(key, listing.endDate))
-        logger.info("Scheduled expiration - key: $key, expiration time: ${listing.endDate}")
-        if (listing.endDate < nextScheduledTime) {
+    private fun scheduleExpiration(key: String, scheduleEntity: ScheduleEntity) {
+        stateStore.put(key, scheduleEntity)
+        scheduledExpirations.add(ScheduledExpiration(key, scheduleEntity.endDate))
+        logger.info("Scheduled expiration - key: $key, expiration time: ${scheduleEntity.endDate}")
+        if (scheduleEntity.endDate < nextScheduledTime) {
             scheduleNextExpiration()
         }
     }
-    private fun cancelListing(key: String, listing: Listing): KeyValue<String, Listing> {
-        logger.info("Cancelling listing - key: $key")
+    private fun cancelListing(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
+        logger.info("Cancelling - key: $key")
         val existingListing = stateStore.get(key)
         if (existingListing != null) {
             stateStore.delete(key)
@@ -75,7 +75,7 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         } else {
             logger.info("No listing found in expiration store for cancelled listing: $key")
         }
-        return KeyValue(key, listing)
+        return KeyValue(key, scheduleEntity)
     }
     private fun scheduleNextExpiration() {
         scheduledPunctuator?.cancel()
@@ -111,8 +111,8 @@ class ExpirationProcessor : Transformer<String, Listing, KeyValue<String, Listin
         scheduleNextExpiration()
     }
 
-    private fun expireListing(key: String, listing: Listing): KeyValue<String, Listing> {
-        val expiredListing = listing.copy(statusType = StatusType.EXPIRED)
+    private fun expireListing(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
+        val expiredListing = scheduleEntity.updateStatus(statusType = StatusType.EXPIRED)
         stateStore.put(key, expiredListing)
         return KeyValue(key, expiredListing)
     }
