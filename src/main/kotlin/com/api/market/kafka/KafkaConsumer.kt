@@ -54,7 +54,7 @@ class KafkaConsumer(
     private fun updateScheduleEntity(scheduleEntity: ScheduleEntity) {
         when (scheduleEntity) {
             is Listing -> listingService.update(scheduleEntity).subscribe()
-            //is Auction -> auctionService.update(scheduleEntity).subscribe()
+            is Auction -> auctionService.update(scheduleEntity).subscribe()
         }
     }
 }

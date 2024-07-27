@@ -105,7 +105,7 @@ class ActivationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
             val activation = scheduledActivations.poll()
             val scheduleEntity = stateStore.get(activation.key)
             if (scheduleEntity != null && scheduleEntity.statusType == StatusType.RESERVATION) {
-                val activationScheduleEntity = scheduleEntity.updateStatus(StatusType.LISTING)
+                val activationScheduleEntity = scheduleEntity.updateStatus(StatusType.ACTIVED)
                 stateStore.put(activation.key, activationScheduleEntity)
                 context.forward(activation.key, activationScheduleEntity)
                 activatedCount++
@@ -115,7 +115,7 @@ class ActivationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
     }
 
     private fun activateScheduleEntity(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
-        val activatedSchedule = scheduleEntity.updateStatus(StatusType.LISTING)
+        val activatedSchedule = scheduleEntity.updateStatus(StatusType.ACTIVED)
         stateStore.put(key, activatedSchedule)
         return KeyValue(key, activatedSchedule)
     }

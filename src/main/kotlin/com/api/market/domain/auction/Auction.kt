@@ -1,6 +1,7 @@
 package com.api.market.domain.auction
 
 import com.api.market.domain.ScheduleEntity
+import com.api.market.domain.listing.Listing
 import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.fasterxml.jackson.annotation.JsonCreator
@@ -25,6 +26,13 @@ data class Auction @JsonCreator constructor(
     @JsonProperty("startingPrice") val startingPrice: BigDecimal,
     @JsonProperty("tokenType")override val tokenType: TokenType
 ): ScheduleEntity {
+
+    fun update(updateRequest: Auction): Auction {
+        return this.copy(
+            statusType = updateRequest.statusType
+        )
+    }
+
     override fun updateStatus(statusType: StatusType): ScheduleEntity {
         return this.copy(statusType = statusType)
     }

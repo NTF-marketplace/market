@@ -40,16 +40,18 @@ class ListingService(
 
     fun cancel(id: Long): Mono<Void> {
         return listingRepository.findById(id)
-            .doOnNext { listing ->
+            .flatMap { listing ->
                 val cancelledListing = when (listing.statusType) {
                     StatusType.RESERVATION -> listing.copy(statusType = StatusType.RESERVATION_CANCEL)
-                    StatusType.LISTING -> listing.copy(statusType = StatusType.CANCEL)
+                    StatusType.ACTIVED -> listing.copy(statusType = StatusType.CANCEL)
                     else -> listing
                 }
-                kafkaProducer.sendCancellation(cancelledListing).subscribe()
+                kafkaProducer.sendCancellation(cancelledListing)
+                    .then()
             }
             .then()
     }
+
 
     fun saveListing(request: ListingCreateRequest): Mono<Listing> {
         return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.RESERVATION)
@@ -62,13 +64,14 @@ class ListingService(
                         address = request.address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
-                        statusType = StatusType.RESERVATION, // 아직 리스팅 시작전
+                        statusType = StatusType.RESERVATION,
                         price = request.price,
                         tokenType = request.tokenType
                     )
                     listingRepository.save(newListing)
-                        .doOnSuccess { savedListing ->
-                            kafkaProducer.sendListing(savedListing).subscribe()
+                        .flatMap { savedListing ->
+                            kafkaProducer.sendScheduleEntity("listing-events", savedListing)
+                                .thenReturn(savedListing)
                         }
                 }
             }

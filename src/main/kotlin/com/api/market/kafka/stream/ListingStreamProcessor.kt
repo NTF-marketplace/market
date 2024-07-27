@@ -75,7 +75,7 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
 
         expiredStream
             .filter { _, listing ->
-                listing.statusType == StatusType.LISTING ||
+                listing.statusType == StatusType.ACTIVED ||
                         listing.statusType == StatusType.CANCEL || listing.statusType == StatusType.EXPIRED
             }
             .to("processed-events", Produced.with(Serdes.String(), scheduleEntitySerde))

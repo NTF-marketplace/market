@@ -1,9 +1,16 @@
 package com.api.market.service
 
 import com.api.market.controller.dto.request.AuctionCreateRequest
+import com.api.market.controller.dto.response.AuctionResponse
+import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
+import com.api.market.domain.listing.Listing
 import com.api.market.enums.StatusType
+import com.api.market.event.AuctionUpdatedEvent
+import com.api.market.event.ListingUpdatedEvent
+import com.api.market.kafka.KafkaProducer
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -11,6 +18,8 @@ import reactor.core.publisher.Mono
 class AuctionService(
     private val walletApiService: WalletApiService,
     private val auctionRepository: AuctionRepository,
+    private val eventPublisher: ApplicationEventPublisher,
+    private val kafkaProducer: KafkaProducer,
 ) {
 
     fun create(request: AuctionCreateRequest) : Mono<Auction> {
@@ -19,13 +28,22 @@ class AuctionService(
                 if(nftExists) {
                     saveAuction(request)
                 } else {
+                    Mono.error(IllegalArgumentException("Invalid NFT ID"))
                 }
-                Mono.error(IllegalArgumentException("Invalid NFT ID"))
             }
+            .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
+    }
+
+
+    fun update(auction: Auction): Mono<Auction> {
+        return auctionRepository.findById(auction.id!!)
+            .map { it.update(auction) }
+            .flatMap { auctionRepository.save(it) }
+            .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
     }
 
     fun saveAuction(request: AuctionCreateRequest): Mono<Auction> {
-        return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, statusType = StatusType.RESERVATION)
+        return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
@@ -35,15 +53,28 @@ class AuctionService(
                         address = request.address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
-                        statusType = StatusType.RESERVATION, // 아직 auction 시작전
+                        statusType = StatusType.RESERVATION,
                         startingPrice = request.startingPrice,
-                        tokenType = request.tokenType,
+                        tokenType = request.tokenType
                     )
                     auctionRepository.save(newAuction)
-                        .doOnSuccess {
-                            // kafkaProducer.sendListing(savedListing).subscribe()
+                        .flatMap { savedAuction ->
+                            kafkaProducer.sendScheduleEntity("auction-events", savedAuction)
+                                .thenReturn(savedAuction)
                         }
                 }
             }
     }
+
+
+    private fun Auction.toResponse() = AuctionResponse (
+        id = this.id!!,
+        nftId = this.nftId,
+        address = this.address,
+        createdDateTime = this.createdDate,
+        endDateTime =  this.endDate,
+        statusType = this.statusType,
+        startingPrice = this.startingPrice,
+        tokenType = this.tokenType
+    )
 }

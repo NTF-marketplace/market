@@ -15,7 +15,7 @@ class MarketEventListener(
     }
 
     @EventListener
-    fun listingCanceled(event: ListingCanceledEvent) {
-        provider.listingCancelSend(event.listing)
+    fun auctionUpdated(event: AuctionUpdatedEvent) {
+        provider.auctionSend(event.auction)
     }
 }

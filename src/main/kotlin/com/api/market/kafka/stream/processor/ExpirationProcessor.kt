@@ -30,27 +30,27 @@ class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
         scheduleNextExpiration()
     }
 
-    override fun transform(key: String, listing: ScheduleEntity): KeyValue<String, ScheduleEntity> {
+    override fun transform(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
         val now = context.timestamp()
-        logger.info("Transform called - key: $key, status: ${listing.statusType}, current time: $now")
+        logger.info("Transform called - key: $key, status: ${scheduleEntity.statusType}, current time: $now")
 
-        when (listing.statusType) {
-            StatusType.LISTING -> {
-                if (now >= listing.endDate) {
-                    return expireListing(key, listing)
+        when (scheduleEntity.statusType) {
+            StatusType.ACTIVED -> {
+                if (now >= scheduleEntity.endDate) {
+                    return expireScheduleEntity(key, scheduleEntity)
                 } else {
-                    scheduleExpiration(key, listing)
+                    scheduleExpiration(key, scheduleEntity)
                 }
             }
             StatusType.CANCEL -> {
-                return cancelListing(key, listing)
+                return cancelScheduleEntity(key, scheduleEntity)
             }
             else -> {
-                logger.info("Passing through listing - key: $key, status: ${listing.statusType}")
+                logger.info("Passing through scheduleEntity - key: $key, status: ${scheduleEntity.statusType}")
             }
         }
 
-        return KeyValue(key, listing)
+        return KeyValue(key, scheduleEntity)
     }
 
     private fun scheduleExpiration(key: String, scheduleEntity: ScheduleEntity) {
@@ -61,10 +61,10 @@ class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
             scheduleNextExpiration()
         }
     }
-    private fun cancelListing(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
+    private fun cancelScheduleEntity(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
         logger.info("Cancelling - key: $key")
-        val existingListing = stateStore.get(key)
-        if (existingListing != null) {
+        val existingScheduleEntity = stateStore.get(key)
+        if (existingScheduleEntity != null) {
             stateStore.delete(key)
             logger.info("Removed from state store - key: $key")
             val removed = scheduledExpirations.removeIf { it.key == key }
@@ -73,7 +73,7 @@ class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
                 scheduleNextExpiration()
             }
         } else {
-            logger.info("No listing found in expiration store for cancelled listing: $key")
+            logger.info("No scheduleEntity found in expiration store for cancelled scheduleEntity: $key")
         }
         return KeyValue(key, scheduleEntity)
     }
@@ -99,10 +99,10 @@ class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
         var expiredCount = 0
         while (scheduledExpirations.isNotEmpty() && scheduledExpirations.peek().expirationTime <= timestamp) {
             val expiration = scheduledExpirations.poll()
-            val listing = stateStore.get(expiration.key)
-            if (listing != null && listing.statusType == StatusType.LISTING) {
-                val expiredListing = expireListing(expiration.key, listing).value
-                context.forward(expiration.key, expiredListing)
+            val scheduleEntity = stateStore.get(expiration.key)
+            if (scheduleEntity != null && scheduleEntity.statusType == StatusType.ACTIVED) {
+                val expiredScheduleEntity = expireScheduleEntity(expiration.key, scheduleEntity).value
+                context.forward(expiration.key, expiredScheduleEntity)
                 expiredCount++
             } else {
                 stateStore.delete(expiration.key)
@@ -111,10 +111,10 @@ class ExpirationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
         scheduleNextExpiration()
     }
 
-    private fun expireListing(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
-        val expiredListing = scheduleEntity.updateStatus(statusType = StatusType.EXPIRED)
-        stateStore.put(key, expiredListing)
-        return KeyValue(key, expiredListing)
+    private fun expireScheduleEntity(key: String, scheduleEntity: ScheduleEntity): KeyValue<String, ScheduleEntity> {
+        val expiredSchedule = scheduleEntity.updateStatus(statusType = StatusType.EXPIRED)
+        stateStore.put(key, expiredSchedule)
+        return KeyValue(key, expiredSchedule)
     }
 
     override fun close() {}

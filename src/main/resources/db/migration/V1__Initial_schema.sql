@@ -25,7 +25,7 @@ CREATE TYPE token_type AS ENUM (
 
 CREATE TYPE status_type AS ENUM (
     'RESERVATION',
-    'LISTING',
+    'ACTIVED',
     'RESERVATION_CANCEL',
     'CANCEL',
     'EXPIRED',

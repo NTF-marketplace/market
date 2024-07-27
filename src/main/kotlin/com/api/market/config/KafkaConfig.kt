@@ -1,8 +1,13 @@
 package com.api.market.config
 
 import com.api.market.domain.ScheduleEntity
+import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
 import com.api.market.kafka.stream.storage.RocksDBConfig
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.jsontype.NamedType
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.apache.kafka.clients.admin.AdminClientConfig
 import org.apache.kafka.clients.admin.NewTopic
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -19,11 +24,7 @@ import org.springframework.kafka.annotation.EnableKafkaStreams
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.config.KafkaStreamsConfiguration
 import org.springframework.kafka.config.TopicBuilder
-import org.springframework.kafka.core.ConsumerFactory
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory
-import org.springframework.kafka.core.DefaultKafkaProducerFactory
-import org.springframework.kafka.core.KafkaTemplate
-import org.springframework.kafka.core.ProducerFactory
+import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.CommonErrorHandler
 import org.springframework.kafka.listener.MessageListenerContainer
 import org.springframework.kafka.support.serializer.JsonDeserializer
@@ -40,31 +41,44 @@ class KafkaConfig {
     private lateinit var bootstrapServers: String
 
     @Bean
+    fun kafkaAdmin(): KafkaAdmin {
+        return KafkaAdmin(mapOf(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers))
+    }
+
+    @Bean
     fun listingEventsTopic(): NewTopic = TopicBuilder.name("listing-events")
         .partitions(4)
-        .replicas(2)
+        .replicas(1)
         .build()
 
     @Bean
     fun auctionEventsTopic(): NewTopic = TopicBuilder.name("auction-events")
         .partitions(4)
-        .replicas(2)
+        .replicas(1)
         .build()
 
     @Bean
-    fun processedListingEventsTopic(): NewTopic = TopicBuilder.name("processed-listing-events")
+    fun processedEventsTopic(): NewTopic = TopicBuilder.name("processed-events")
         .partitions(4)
-        .replicas(2)
+        .replicas(1)
         .build()
 
     @Bean
-    fun activatedListingEventsTopic(): NewTopic = TopicBuilder.name("activated-listing-events")
+    fun activatedEventsTopic(): NewTopic = TopicBuilder.name("activated-events")
         .partitions(4)
-        .replicas(2)
+        .replicas(1)
         .build()
 
     @Bean
-    fun producerFactory(): ProducerFactory<String, Listing> {
+    fun objectMapper(): ObjectMapper {
+        val mapper = jacksonObjectMapper()
+        mapper.registerSubtypes(NamedType(Listing::class.java, "listing"))
+        mapper.registerSubtypes(NamedType(Auction::class.java, "auction"))
+        return mapper
+    }
+
+    @Bean
+    fun producerFactory(): ProducerFactory<String, ScheduleEntity> {
         val configProps = mapOf(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
@@ -74,13 +88,13 @@ class KafkaConfig {
     }
 
     @Bean
-    fun kafkaTemplate(): KafkaTemplate<String, Listing> {
+    fun kafkaTemplate(): KafkaTemplate<String, ScheduleEntity> {
         return KafkaTemplate(producerFactory())
     }
 
     // consumer-------------------------
     @Bean
-    fun consumerFactory(): ConsumerFactory<String, Listing> {
+    fun consumerFactory(): ConsumerFactory<String, ScheduleEntity> {
         val props = mapOf(
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ConsumerConfig.GROUP_ID_CONFIG to "market-group",
@@ -89,12 +103,12 @@ class KafkaConfig {
             JsonDeserializer.TRUSTED_PACKAGES to "*",
             JsonDeserializer.VALUE_DEFAULT_TYPE to ScheduleEntity::class.java.name
         )
-        return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(Listing::class.java, false))
+        return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(ScheduleEntity::class.java, false))
     }
 
     @Bean
-    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Listing> {
-        val factory = ConcurrentKafkaListenerContainerFactory<String, Listing>()
+    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, ScheduleEntity> {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, ScheduleEntity>()
         factory.consumerFactory = consumerFactory()
         factory.setConcurrency(4)
         factory.setCommonErrorHandler(object : CommonErrorHandler {
