@@ -4,7 +4,7 @@ import com.api.market.controller.dto.request.ListingCreateRequest
 import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import org.springframework.context.ApplicationEventPublisher
@@ -19,11 +19,11 @@ class ListingService(
     private val kafkaProducer: KafkaProducer,
 ) {
 
-    fun create(request: ListingCreateRequest): Mono<Listing> {
-        return walletApiService.getAccountNftByAddress(request.address, request.nftId)
+    fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return walletApiService.getAccountNftByAddress(address, request.nftId)
             .flatMap { nftExists ->
                 if (nftExists) {
-                    saveListing(request)
+                    saveListing(address,request)
                 } else {
                     Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
                 }
@@ -35,40 +35,45 @@ class ListingService(
         return listingRepository.findById(listing.id!!)
             .map { it.update(listing) }
             .flatMap { listingRepository.save(it) }
-           .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
+           .doOnSuccess {
+               println("send Listing : " + listing.statusType)
+               eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
     }
 
     fun cancel(id: Long): Mono<Void> {
         return listingRepository.findById(id)
-            .doOnNext { listing ->
+            .flatMap { listing ->
                 val cancelledListing = when (listing.statusType) {
-                    ListingStatusType.RESERVATION -> listing.copy(statusType = ListingStatusType.RESERVATION_CANCEL)
-                    ListingStatusType.LISTING -> listing.copy(statusType = ListingStatusType.CANCEL)
+                    StatusType.RESERVATION -> listing.copy(statusType = StatusType.RESERVATION_CANCEL)
+                    StatusType.ACTIVED -> listing.copy(statusType = StatusType.CANCEL)
                     else -> listing
                 }
-                kafkaProducer.sendCancellation(cancelledListing).subscribe()
+                kafkaProducer.sendCancellation(cancelledListing)
+                    .then()
             }
             .then()
     }
 
-    fun saveListing(request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, ListingStatusType.LISTING)
+
+    fun saveListing(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
                 } else {
                     val newListing = Listing(
                         nftId = request.nftId,
-                        address = request.address,
+                        address = address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
-                        statusType = ListingStatusType.RESERVATION, // 아직 리스팅 시작전
+                        statusType = StatusType.RESERVATION,
                         price = request.price,
                         tokenType = request.tokenType
                     )
                     listingRepository.save(newListing)
-                        .doOnSuccess { savedListing ->
-                            kafkaProducer.sendListing(savedListing).subscribe()
+                        .flatMap { savedListing ->
+                            kafkaProducer.sendScheduleEntity("listing-events", savedListing)
+                                .thenReturn(savedListing)
                         }
                 }
             }

@@ -1,15 +1,16 @@
 package com.api.market
 
+import com.api.market.controller.dto.request.AuctionCreateRequest
 import com.api.market.controller.dto.request.ListingCreateRequest
-import com.api.market.controller.dto.request.ListingUpdateRequest
 import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
-import com.api.market.enums.ListingStatusType
+import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import com.api.market.rabbitMQ.RabbitMQSender
+import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import com.api.market.service.WalletApiService
 import kotlinx.coroutines.runBlocking
@@ -21,10 +22,8 @@ import org.springframework.test.context.ActiveProfiles
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
 import java.math.BigDecimal
-import java.time.Instant
 import java.time.ZonedDateTime
 import java.util.concurrent.CountDownLatch
-import kotlin.time.Duration
 
 @SpringBootTest
 @ActiveProfiles("local")
@@ -35,6 +34,7 @@ class MarketServiceTest(
     @Autowired private val kafkaProducer: KafkaProducer,
     @Autowired private val walletApiService: WalletApiService,
     @Autowired private val rabbitMQSender: RabbitMQSender,
+    @Autowired private val auctionService: AuctionService,
 ) {
 
 
@@ -50,11 +50,11 @@ class MarketServiceTest(
                 endDate = System.currentTimeMillis() + (i * 30 * 1000),
                 price = BigDecimal(3.8),
                 tokenType = TokenType.MATIC,
-                statusType = ListingStatusType.RESERVATION
+                statusType = StatusType.RESERVATION
             )
 
             Mono.fromCallable {
-                kafkaProducer.sendListing(request).block()
+                kafkaProducer.sendScheduleEntity("listing-events",request).block()
                 latch.countDown()
             }
                 .subscribeOn(Schedulers.parallel())
@@ -69,9 +69,9 @@ class MarketServiceTest(
         val now = ZonedDateTime.now()
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 2L,
+                nftId = 3L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-                createdDate = now.plusSeconds(60),
+                createdDate = now.plusSeconds(40),
                 endDate = now.plusDays(100),
                 price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
@@ -107,10 +107,10 @@ class MarketServiceTest(
         val now = ZonedDateTime.now()
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 2L,
+                nftId = 4L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
-                createdDate = now.plusSeconds(30),
-                endDate = now.plusDays(2),
+                createdDate = now.plusSeconds(20),
+                endDate = now.plusSeconds(40),
                 price = BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
             ),
@@ -119,6 +119,28 @@ class MarketServiceTest(
 
         val createdListings = listings.map { request ->
             listingService.create(request)
+        }.map { it.block() }
+
+        Thread.sleep(360000)
+    }
+
+    @Test
+    fun createMultipleAuction() {
+        val now = ZonedDateTime.now()
+        val auction = listOf(
+            AuctionCreateRequest(
+                nftId = 3L,
+                address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
+                createdDate = now.plusSeconds(20),
+                endDate = now.plusSeconds(80),
+                startingPrice =  BigDecimal("1.23"),
+                tokenType = TokenType.MATIC
+            ),
+
+            )
+
+        val createdListings = auction.map { request ->
+            auctionService.create(request)
         }.map { it.block() }
 
         Thread.sleep(360000)

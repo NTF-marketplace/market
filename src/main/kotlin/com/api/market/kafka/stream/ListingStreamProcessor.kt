@@ -1,7 +1,7 @@
 package com.api.market.kafka.stream
 
-import com.api.market.domain.listing.Listing
-import com.api.market.enums.ListingStatusType
+import com.api.market.domain.ScheduleEntity
+import com.api.market.enums.StatusType
 import com.api.market.kafka.stream.processor.ActivationProcessor
 import com.api.market.kafka.stream.processor.ExpirationProcessor
 import jakarta.annotation.PostConstruct
@@ -21,7 +21,7 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
 
     @PostConstruct
     fun buildPipeline() {
-        val listingSerde = JsonSerde(Listing::class.java).apply {
+        val scheduleEntitySerde = JsonSerde(ScheduleEntity::class.java).apply {
             this.configure(
                 mapOf(
                     JsonSerializer.ADD_TYPE_INFO_HEADERS to false
@@ -34,7 +34,7 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
             Stores.keyValueStoreBuilder(
                 Stores.persistentKeyValueStore("activation-store"),
                 Serdes.String(),
-                listingSerde
+                scheduleEntitySerde
             )
         )
 
@@ -42,24 +42,32 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
             Stores.keyValueStoreBuilder(
                 Stores.persistentKeyValueStore("expiration-store"),
                 Serdes.String(),
-                listingSerde
+                scheduleEntitySerde
             )
         )
 
-        val listingStream: KStream<String, Listing> = streamsBuilder.stream(
+        val listingStream: KStream<String, ScheduleEntity> = streamsBuilder.stream(
             "listing-events",
-            Consumed.with(Serdes.String(), listingSerde)
+            Consumed.with(Serdes.String(), scheduleEntitySerde)
         )
 
-        val activatedStream = listingStream
+        val auctionStream: KStream<String,ScheduleEntity > = streamsBuilder.stream(
+            "auction-events",
+            Consumed.with(Serdes.String(), scheduleEntitySerde)
+        )
+
+
+        val allStream = listingStream.merge(auctionStream)
+
+        val activatedStream = allStream
             .transform(TransformerSupplier { ActivationProcessor() }, "activation-store")
 
         activatedStream
-            .filter { _, listing ->
-                listing.statusType == ListingStatusType.RESERVATION ||
-                        listing.statusType == ListingStatusType.RESERVATION_CANCEL
+            .filter { _, scheduleEntity ->
+                scheduleEntity.statusType == StatusType.RESERVATION ||
+                        scheduleEntity.statusType == StatusType.RESERVATION_CANCEL
             }
-            .to("activated-listing-events", Produced.with(Serdes.String(), listingSerde))
+            .to("activated-events", Produced.with(Serdes.String(), scheduleEntitySerde))
 
         // 만료 처리
         val expiredStream = activatedStream
@@ -67,10 +75,12 @@ class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
 
         expiredStream
             .filter { _, listing ->
-                listing.statusType == ListingStatusType.LISTING ||
-                        listing.statusType == ListingStatusType.CANCEL || listing.statusType == ListingStatusType.EXPIRED
+                listing.statusType == StatusType.ACTIVED ||
+                        listing.statusType == StatusType.CANCEL || listing.statusType == StatusType.EXPIRED
             }
-            .to("processed-listing-events", Produced.with(Serdes.String(), listingSerde))
+            .to("processed-events", Produced.with(Serdes.String(), scheduleEntitySerde))
     }
 
 }
+
+

@@ -23,9 +23,9 @@ CREATE TYPE token_type AS ENUM (
     'ETH'
     );
 
-CREATE TYPE listing_status_type AS ENUM (
+CREATE TYPE status_type AS ENUM (
     'RESERVATION',
-    'LISTING',
+    'ACTIVED',
     'RESERVATION_CANCEL',
     'CANCEL',
     'EXPIRED'
@@ -47,7 +47,18 @@ CREATE TABLE IF NOT EXISTS listing (
     address VARCHAR(255) NOT NULL,
     created_date BIGINT not null,
     end_date BIGINT not null,
-    status_type listing_status_type not null,
+    status_type status_type not null,
     price DECIMAL(19, 4) NOT NULL,
+    token_type token_type not null
+);
+
+CREATE TABLE IF NOT EXISTS auction (
+    id SERIAL PRIMARY KEY,
+    nft_id BIGINT REFERENCES nft(id),
+    address VARCHAR(255) NOT NULL,
+    created_date BIGINT not null,
+    end_date BIGINT not null,
+    status_type status_type not null,
+    starting_price DECIMAL(19, 4) NOT NULL,
     token_type token_type not null
 );
