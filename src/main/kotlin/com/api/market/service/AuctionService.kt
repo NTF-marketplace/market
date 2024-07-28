@@ -22,11 +22,11 @@ class AuctionService(
     private val kafkaProducer: KafkaProducer,
 ) {
 
-    fun create(request: AuctionCreateRequest) : Mono<Auction> {
-        return walletApiService.getAccountNftByAddress(request.address, request.nftId)
+    fun create(address: String,request: AuctionCreateRequest) : Mono<Auction> {
+        return walletApiService.getAccountNftByAddress(address, request.nftId)
             .flatMap { nftExists ->
                 if(nftExists) {
-                    saveAuction(request)
+                    saveAuction(address,request)
                 } else {
                     Mono.error(IllegalArgumentException("Invalid NFT ID"))
                 }
@@ -42,15 +42,15 @@ class AuctionService(
             .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
     }
 
-    fun saveAuction(request: AuctionCreateRequest): Mono<Auction> {
-        return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.RESERVATION)
+    fun saveAuction(address: String,request: AuctionCreateRequest): Mono<Auction> {
+        return auctionRepository.existsByNftIdAndAddressAndStatusType(request.nftId, address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
                 } else {
                     val newAuction = Auction(
                         nftId = request.nftId,
-                        address = request.address,
+                        address = address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
                         statusType = StatusType.RESERVATION,

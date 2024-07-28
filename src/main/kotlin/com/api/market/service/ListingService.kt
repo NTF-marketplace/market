@@ -19,11 +19,11 @@ class ListingService(
     private val kafkaProducer: KafkaProducer,
 ) {
 
-    fun create(request: ListingCreateRequest): Mono<Listing> {
-        return walletApiService.getAccountNftByAddress(request.address, request.nftId)
+    fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return walletApiService.getAccountNftByAddress(address, request.nftId)
             .flatMap { nftExists ->
                 if (nftExists) {
-                    saveListing(request)
+                    saveListing(address,request)
                 } else {
                     Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
                 }
@@ -55,15 +55,15 @@ class ListingService(
     }
 
 
-    fun saveListing(request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, request.address, StatusType.RESERVATION)
+    fun saveListing(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
                     Mono.empty()
                 } else {
                     val newListing = Listing(
                         nftId = request.nftId,
-                        address = request.address,
+                        address = address,
                         createdDate = request.createdDate.toInstant().toEpochMilli(),
                         endDate = request.endDate.toInstant().toEpochMilli(),
                         statusType = StatusType.RESERVATION,

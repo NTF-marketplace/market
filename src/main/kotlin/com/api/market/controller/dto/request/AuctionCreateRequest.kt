@@ -6,7 +6,6 @@ import java.time.ZonedDateTime
 
 data class AuctionCreateRequest(
     val nftId: Long,
-    val address: String,
     val createdDate: ZonedDateTime,
     val endDate: ZonedDateTime,
     val startingPrice: BigDecimal,
