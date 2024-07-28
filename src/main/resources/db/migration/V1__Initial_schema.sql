@@ -28,8 +28,7 @@ CREATE TYPE status_type AS ENUM (
     'ACTIVED',
     'RESERVATION_CANCEL',
     'CANCEL',
-    'EXPIRED',
-    'AUCTION'
+    'EXPIRED'
     );
 
 

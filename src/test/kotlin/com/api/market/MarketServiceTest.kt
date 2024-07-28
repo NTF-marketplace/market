@@ -107,7 +107,7 @@ class MarketServiceTest(
         val now = ZonedDateTime.now()
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 2L,
+                nftId = 4L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
                 createdDate = now.plusSeconds(20),
                 endDate = now.plusSeconds(40),
@@ -118,7 +118,7 @@ class MarketServiceTest(
         )
 
         val createdListings = listings.map { request ->
-            listingService.saveListing(request)
+            listingService.create(request)
         }.map { it.block() }
 
         Thread.sleep(360000)
@@ -129,10 +129,10 @@ class MarketServiceTest(
         val now = ZonedDateTime.now()
         val auction = listOf(
             AuctionCreateRequest(
-                nftId = 2L,
+                nftId = 3L,
                 address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867",
                 createdDate = now.plusSeconds(20),
-                endDate = now.plusSeconds(40),
+                endDate = now.plusSeconds(80),
                 startingPrice =  BigDecimal("1.23"),
                 tokenType = TokenType.MATIC
             ),
@@ -140,7 +140,7 @@ class MarketServiceTest(
             )
 
         val createdListings = auction.map { request ->
-            auctionService.saveAuction(request)
+            auctionService.create(request)
         }.map { it.block() }
 
         Thread.sleep(360000)

@@ -35,7 +35,9 @@ class ListingService(
         return listingRepository.findById(listing.id!!)
             .map { it.update(listing) }
             .flatMap { listingRepository.save(it) }
-           .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
+           .doOnSuccess {
+               println("send Listing : " + listing.statusType)
+               eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
     }
 
     fun cancel(id: Long): Mono<Void> {
