@@ -2,6 +2,7 @@ package com.api.market.domain
 
 import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
+import com.api.market.enums.ChainType
 import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.fasterxml.jackson.annotation.JsonSubTypes
@@ -22,7 +23,7 @@ interface ScheduleEntity {
     val statusType: StatusType
     val createdDate: Long
     val endDate: Long
-    val tokenType: TokenType
+    val chainType: ChainType
     val address: String
     fun updateStatus(statusType: StatusType): ScheduleEntity
 }

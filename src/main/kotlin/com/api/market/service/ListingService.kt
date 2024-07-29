@@ -20,7 +20,7 @@ class ListingService(
 ) {
 
     fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
-        return walletApiService.getAccountNftByAddress(address, request.nftId)
+        return walletApiService.validNftByAddress(address, request.nftId)
             .flatMap { nftExists ->
                 if (nftExists) {
                     saveListing(address,request)
@@ -68,7 +68,7 @@ class ListingService(
                         endDate = request.endDate.toInstant().toEpochMilli(),
                         statusType = StatusType.RESERVATION,
                         price = request.price,
-                        tokenType = request.tokenType
+                        chainType = request.chainType
                     )
                     listingRepository.save(newListing)
                         .flatMap { savedListing ->
@@ -87,6 +87,6 @@ class ListingService(
         endDateTime =  this.endDate,
         statusType = this.statusType,
         price = this.price,
-        tokenType = this.tokenType
+        chainType = this.chainType
     )
 }

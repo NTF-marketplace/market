@@ -1,6 +1,5 @@
 package com.api.market.config
 
-import com.api.market.domain.ScheduleEntity
 import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
 import com.api.market.kafka.stream.storage.RocksDBConfig
@@ -70,6 +69,13 @@ class KafkaConfig {
         .build()
 
     @Bean
+    fun ledgerTopic(): NewTopic = TopicBuilder.name("ledger-topic")
+        .partitions(4)
+        .replicas(1)
+        .build()
+
+
+    @Bean
     fun objectMapper(): ObjectMapper {
         val mapper = jacksonObjectMapper()
         mapper.registerSubtypes(NamedType(Listing::class.java, "listing"))
@@ -78,37 +84,38 @@ class KafkaConfig {
     }
 
     @Bean
-    fun producerFactory(): ProducerFactory<String, ScheduleEntity> {
+    fun producerFactory(): ProducerFactory<String, Any> {
         val configProps = mapOf(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
+            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true
         )
         return DefaultKafkaProducerFactory(configProps)
     }
 
     @Bean
-    fun kafkaTemplate(): KafkaTemplate<String, ScheduleEntity> {
+    fun kafkaTemplate(): KafkaTemplate<String, Any> {
         return KafkaTemplate(producerFactory())
     }
 
     // consumer-------------------------
     @Bean
-    fun consumerFactory(): ConsumerFactory<String, ScheduleEntity> {
+    fun consumerFactory(): ConsumerFactory<String, Any> {
         val props = mapOf(
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ConsumerConfig.GROUP_ID_CONFIG to "market-group",
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java.name,
             ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java.name,
             JsonDeserializer.TRUSTED_PACKAGES to "*",
-            JsonDeserializer.VALUE_DEFAULT_TYPE to ScheduleEntity::class.java.name
+            JsonDeserializer.VALUE_DEFAULT_TYPE to Any::class.java.name
         )
-        return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(ScheduleEntity::class.java, false))
+        return DefaultKafkaConsumerFactory(props, StringDeserializer(), JsonDeserializer(Any::class.java, false))
     }
 
     @Bean
-    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, ScheduleEntity> {
-        val factory = ConcurrentKafkaListenerContainerFactory<String, ScheduleEntity>()
+    fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Any> {
+        val factory = ConcurrentKafkaListenerContainerFactory<String, Any>()
         factory.consumerFactory = consumerFactory()
         factory.setConcurrency(4)
         factory.setCommonErrorHandler(object : CommonErrorHandler {
@@ -136,6 +143,8 @@ class KafkaConfig {
         )
         return KafkaStreamsConfiguration(props)
     }
+
+
 
 }
 

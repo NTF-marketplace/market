@@ -23,7 +23,7 @@ class AuctionService(
 ) {
 
     fun create(address: String,request: AuctionCreateRequest) : Mono<Auction> {
-        return walletApiService.getAccountNftByAddress(address, request.nftId)
+        return walletApiService.validNftByAddress(address, request.nftId)
             .flatMap { nftExists ->
                 if(nftExists) {
                     saveAuction(address,request)
@@ -55,7 +55,7 @@ class AuctionService(
                         endDate = request.endDate.toInstant().toEpochMilli(),
                         statusType = StatusType.RESERVATION,
                         startingPrice = request.startingPrice,
-                        tokenType = request.tokenType
+                        chainType = request.chainType
                     )
                     auctionRepository.save(newAuction)
                         .flatMap { savedAuction ->
@@ -75,6 +75,6 @@ class AuctionService(
         endDateTime =  this.endDate,
         statusType = this.statusType,
         startingPrice = this.startingPrice,
-        tokenType = this.tokenType
+        chainType = this.chainType
     )
 }

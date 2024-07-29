@@ -1,9 +1,11 @@
 package com.api.market.service
 
+import com.api.market.enums.ChainType
 import com.api.market.properties.WalletApiProperties
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
+import java.math.BigDecimal
 
 @Service
 class WalletApiService(
@@ -14,11 +16,11 @@ class WalletApiService(
         .baseUrl(walletApiProperties.uri)
         .build()
 
-    fun getAccountNftByAddress(wallet:String,nftId: Long): Mono<Boolean> {
+    fun validNftByAddress(address:String,nftId: Long): Mono<Boolean> {
         return webClient.get()
             .uri{
                 it.path("v1/account/has/nft")
-                it.queryParam("address",wallet)
+                it.queryParam("address",address)
                 it.queryParam("nftId",nftId)
                 it.build()
             }
@@ -26,16 +28,17 @@ class WalletApiService(
             .bodyToMono(Boolean::class.java)
     }
 
-    fun getAccountNftByAddress1(wallet: String, nftId: Long): Mono<Boolean> {
+
+    fun validAccountBalanceByAddress(address: String, chainType: ChainType, balance:BigDecimal) : Mono<Boolean> {
         return webClient.get()
-            .uri {
-                it.path("v1/account/has/nft")
-                    .queryParam("address", wallet)
-                    .queryParam("nftId", nftId)
-                    .build()
+            .uri{
+                it.path("v1/account/has/balance")
+                it.queryParam("address",address)
+                it.queryParam("chainType",chainType)
+                it.queryParam("requiredBalance",balance)
+                it.build()
             }
             .retrieve()
             .bodyToMono(Boolean::class.java)
-
     }
 }
