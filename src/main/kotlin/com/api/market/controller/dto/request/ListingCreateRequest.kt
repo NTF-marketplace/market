@@ -1,6 +1,6 @@
 package com.api.market.controller.dto.request
 
-import com.api.market.enums.TokenType
+import com.api.market.enums.ChainType
 import java.math.BigDecimal
 import java.time.ZonedDateTime
 
@@ -9,5 +9,5 @@ data class ListingCreateRequest(
     val createdDate: ZonedDateTime,
     val endDate: ZonedDateTime,
     val price: BigDecimal,
-    val tokenType: TokenType
+    val chainType: ChainType
 )

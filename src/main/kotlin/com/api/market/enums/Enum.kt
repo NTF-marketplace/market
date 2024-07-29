@@ -10,8 +10,10 @@ enum class ChainType {
     POLYGON_AMOY,
 }
 
-enum class TokenType { MATIC, ETH, BTC }
+enum class TokenType { MATIC, ETH }
 
 enum class StatusType { RESERVATION, ACTIVED, RESERVATION_CANCEL, CANCEL, EXPIRED, LEDGER }
+
+enum class OrderStatusType { PENDING,FAILED,CANCELD,COMPLETED }
 
 // enum class AuctionStatusType { RESERVATION, AUCTION, RESERVATION_CANCEL, CANCEL, EXPIRED, LEDGER }

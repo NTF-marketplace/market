@@ -31,7 +31,12 @@ CREATE TYPE status_type AS ENUM (
     'EXPIRED'
     );
 
-
+CREATE TYPE order_status_type AS ENUM (
+    'PENDING',
+    'FAILED',
+    'CANCELD',
+    'COMPLETED'
+    );
 
 CREATE TABLE IF NOT EXISTS nft (
     id BIGINT PRIMARY KEY,
@@ -49,7 +54,7 @@ CREATE TABLE IF NOT EXISTS listing (
     end_date BIGINT not null,
     status_type status_type not null,
     price DECIMAL(19, 4) NOT NULL,
-    token_type token_type not null
+    chain_type chain_type not null
 );
 
 CREATE TABLE IF NOT EXISTS auction (
@@ -60,5 +65,14 @@ CREATE TABLE IF NOT EXISTS auction (
     end_date BIGINT not null,
     status_type status_type not null,
     starting_price DECIMAL(19, 4) NOT NULL,
-    token_type token_type not null
+    chain_type chain_type not null
 );
+
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    listing_id BIGINT REFERENCES listing(id),
+    address VARCHAR(255) NOT NULL,
+    created_at BIGINT not null,
+    status_type order_status_type not null
+)
+

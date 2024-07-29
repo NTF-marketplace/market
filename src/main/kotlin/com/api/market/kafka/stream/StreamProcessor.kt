@@ -17,7 +17,7 @@ import org.springframework.kafka.support.serializer.JsonSerializer
 import org.springframework.stereotype.Component
 
 @Component
-class ListingStreamProcessor(private val streamsBuilder: StreamsBuilder) {
+class StreamProcessor(private val streamsBuilder: StreamsBuilder) {
 
     @PostConstruct
     fun buildPipeline() {
