@@ -38,6 +38,12 @@ CREATE TYPE order_status_type AS ENUM (
     'COMPLETED'
     );
 
+CREATE TYPE order_type AS ENUM (
+    'LISTING',
+    'AUCTION'
+    );
+
+
 CREATE TABLE IF NOT EXISTS nft (
     id BIGINT PRIMARY KEY,
     token_id VARCHAR(255) NOT NULL,
@@ -68,11 +74,20 @@ CREATE TABLE IF NOT EXISTS auction (
     chain_type chain_type not null
 );
 
+-- listing과 auction 을 묶을만한게 없나?
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
-    listing_id BIGINT REFERENCES listing(id),
-    address VARCHAR(255) NOT NULL,
+    orderable_id BIGINT NOT NULL,
+    order_type order_type NOT NULL,
     created_at BIGINT not null,
     status_type order_status_type not null
-)
+);
+
+CREATE TABLE IF NOT EXISTS offer(
+    id SERIAL PRIMARY KEY,
+    auction_id BIGINT REFERENCES auction(id),
+    address VARCHAR(255) NOT NULL,
+    created_at BIGINT not null,
+    price DECIMAL(19, 4) NOT NULL
+);
 
