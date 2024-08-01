@@ -2,13 +2,10 @@ package com.api.market.service
 
 import com.api.market.controller.dto.request.AuctionCreateRequest
 import com.api.market.controller.dto.response.AuctionResponse
-import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
-import com.api.market.domain.listing.Listing
 import com.api.market.enums.StatusType
 import com.api.market.event.AuctionUpdatedEvent
-import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
@@ -20,7 +17,15 @@ class AuctionService(
     private val auctionRepository: AuctionRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
+    private val orderService: OrderService
 ) {
+
+    fun findByActivedAuctionId(auctionId: Long): Mono<Auction> {
+        return auctionRepository.findByIdAndStatusType(auctionId,StatusType.ACTIVED)
+            .switchIfEmpty(
+                Mono.error(IllegalArgumentException(""))
+            )
+    }
 
     fun create(address: String,request: AuctionCreateRequest) : Mono<Auction> {
         return walletApiService.validNftByAddress(address, request.nftId)
@@ -35,11 +40,21 @@ class AuctionService(
     }
 
 
-    fun update(auction: Auction): Mono<Auction> {
+    fun update(auction: Auction): Mono<Void> {
         return auctionRepository.findById(auction.id!!)
             .map { it.update(auction) }
             .flatMap { auctionRepository.save(it) }
-            .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
+            .doOnSuccess {
+                eventPublisher.publishEvent(AuctionUpdatedEvent(this, it.toResponse()))
+            }
+            .flatMap {
+                if (it.statusType == StatusType.EXPIRED) {
+                    orderService.createAuctionOrder(it)
+                } else {
+                    Mono.empty()
+                }
+            }
+            .then()
     }
 
     fun saveAuction(address: String,request: AuctionCreateRequest): Mono<Auction> {

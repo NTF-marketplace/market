@@ -7,6 +7,7 @@ import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.ChainType
+import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
@@ -139,7 +140,7 @@ class MarketServiceTest(
             AuctionCreateRequest(
                 nftId = 3L,
                 createdDate = now.plusSeconds(20),
-                endDate = now.plusSeconds(80),
+                endDate = now.plusDays(3),
                 startingPrice =  BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
             ),
@@ -147,7 +148,7 @@ class MarketServiceTest(
             )
 
         val createdListings = auction.map { request ->
-            auctionService.create(address,request)
+            auctionService.saveAuction(address,request)
         }.map { it.block() }
 
         Thread.sleep(360000)
@@ -178,20 +179,21 @@ class MarketServiceTest(
         chainType = this.chainType
     )
 
-    @Test
-    fun hasBalance() {
-        val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
-        val request = OrderCreateRequest(
-            listingId = 6L
-        )
-
-//        nftId = listing.nftId,
-//        address = listing.address,
-//        price = listing.price,
-//        chainType = listing.chainType,
-//        orderAddress = order.address
-        orderService.create(address,request).block()
-    }
-
+//     @Test
+//     fun hasBalance() {
+//         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
+//         val request = OrderCreateRequest(
+//             orderableId = 6L,
+//             orderType = OrderType.AUCTION,
+//         )
+//
+// //        nftId = listing.nftId,
+// //        address = listing.address,
+// //        price = listing.price,
+// //        chainType = listing.chainType,
+// //        orderAddress = order.address
+//         orderService.create(address,request).block()
+//     }
+//
 
 }

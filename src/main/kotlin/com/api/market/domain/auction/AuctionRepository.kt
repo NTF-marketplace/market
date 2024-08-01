@@ -7,4 +7,6 @@ import reactor.core.publisher.Mono
 interface AuctionRepository: R2dbcRepository<Auction,Long> {
 
     fun existsByNftIdAndAddressAndStatusType(nftId: Long, address: String, statusType: StatusType): Mono<Boolean>
+
+    fun findByIdAndStatusType(auctionId: Long, statusType: StatusType): Mono<Auction>
 }

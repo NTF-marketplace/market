@@ -4,24 +4,33 @@ import com.api.market.controller.dto.request.OfferCreateRequest
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.offer.Offer
 import com.api.market.domain.offer.OfferRepository
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.publisher.Sinks
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
-class OfferServce(
+class OfferService(
     private val offerRepository: OfferRepository,
-    private val auctionRepository: AuctionRepository
+    private val auctionRepository: AuctionRepository,
 ) {
 
+    private val offerCreatedPublisher = Sinks.many().multicast().onBackpressureBuffer<Offer>()
+
     fun create(address: String, request: OfferCreateRequest): Mono<Void> {
-        return saveOffer(address, request).then()
+        return saveOffer(address, request)
+            .doOnSuccess { offer ->
+                offerCreatedPublisher.tryEmitNext(offer)
+            }
+            .then()
     }
 
-    //
-    // 그건 요청할때마다 offer list(가격 정렬)를 보여주기
-    // Rsocket
-    //하지만 해당 페이지에 접속하면 세션 접속/ 페이지 나가면 세선 나감
-    // 해당 세션에 속해있으면 create될때마다  바로 websocket 으로 던져주기?
+    fun getOfferCreatedPublisher(): Flux<Offer> {
+        return offerCreatedPublisher.asFlux()
+    }
     fun saveOffer(address: String,request: OfferCreateRequest): Mono<Offer> {
         return auctionRepository.findById(request.auctionId)
             .switchIfEmpty( Mono.error { IllegalArgumentException("") })
@@ -33,5 +42,9 @@ class OfferServce(
             )
             offerRepository.save(newOffer)
         }
+    }
+
+    fun offerPriceDesc(auctionId: Long): Mono<Offer> {
+        return offerRepository.findFirstByAuctionIdOrderByPriceDesc(auctionId)
     }
 }
