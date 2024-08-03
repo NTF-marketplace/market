@@ -9,6 +9,7 @@ import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Service
@@ -18,6 +19,11 @@ class ListingService(
     private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
 ) {
+
+    fun listingHistory(nftId: Long) : Flux<Listing> {
+        return listingRepository.findAllByNftIdAndStatusType(nftId,StatusType.EXPIRED)
+
+    }
 
     fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
         return walletApiService.validNftByAddress(address, request.nftId)

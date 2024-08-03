@@ -20,6 +20,11 @@ class OfferService(
 
     private val offerCreatedPublisher = Sinks.many().multicast().onBackpressureBuffer<Offer>()
 
+    fun offerHistory(auctionId: Long): Flux<Offer> {
+        return offerRepository.findAllByAuctionId(auctionId)
+    }
+
+
     fun create(address: String, request: OfferCreateRequest): Mono<Void> {
         return saveOffer(address, request)
             .doOnSuccess { offer ->

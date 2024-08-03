@@ -49,7 +49,7 @@ class OrderService(
             .flatMap { offer ->
                 createOrder(
                     address = auction.address,
-                    orderableId = auction.id!!,
+                    orderableId = auction.id,
                     orderType = OrderType.AUCTION,
                     nftId = auction.nftId,
                     orderAddress = offer.address,
