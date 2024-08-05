@@ -78,6 +78,7 @@ class OrderService(
         ).flatMap { order ->
             kafkaProducer.sendOrderToLedgerService(
                 LedgerRequest(
+                    orderId =  order.id!!,
                     nftId = nftId,
                     address = orderAddress,
                     price = price,

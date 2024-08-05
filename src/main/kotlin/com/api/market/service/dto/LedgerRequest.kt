@@ -5,6 +5,7 @@ import com.api.market.enums.TokenType
 import java.math.BigDecimal
 
 data class LedgerRequest(
+    val orderId: Long,
     val nftId: Long,
     val address: String,
     val price: BigDecimal,
