@@ -2,6 +2,7 @@ package com.api.market.config
 
 import com.api.market.enums.ChainType
 import com.api.market.enums.OrderStatusType
+import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
 import com.api.market.enums.TokenType
 import com.api.market.util.*
@@ -38,6 +39,7 @@ class R2dbcConfig : AbstractR2dbcConfiguration() {
                     .withEnum("token_type", TokenType::class.java)
                     .withEnum("status_type", StatusType::class.java)
                     .withEnum("order_status_type", OrderStatusType::class.java)
+                    .withEnum("order_type", OrderType::class.java)
                     .build()
             )
             .build()
@@ -53,8 +55,10 @@ class R2dbcConfig : AbstractR2dbcConfiguration() {
         converters.add(StringToEnumConverter(TokenType::class.java))
         converters.add(StatusTypeConvert(StatusType::class.java))
         converters.add(StringToEnumConverter(StatusType::class.java))
-        converters.add(StatusTypeConvert(OrderStatusType::class.java))
         converters.add(OrderStatusTypeConvert(OrderStatusType::class.java))
+        converters.add(StringToEnumConverter(OrderStatusType::class.java))
+        converters.add(OrderTypeConvert(OrderType::class.java))
+        converters.add(StringToEnumConverter(OrderType::class.java))
 
         return R2dbcCustomConversions(storeConversions, converters)
     }
