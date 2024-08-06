@@ -5,6 +5,8 @@ import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
+import com.api.market.service.OrderService
+import com.api.market.service.dto.LedgerStatusRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service
 class KafkaConsumer(
     private val listingService: ListingService,
     private val auctionService: AuctionService,
+    private val orderService: OrderService,
     private val objectMapper: ObjectMapper,
 ) {
     private val logger = LoggerFactory.getLogger(KafkaConsumer::class.java)
@@ -51,6 +54,20 @@ class KafkaConsumer(
         }
     }
 
+    @KafkaListener(topics = ["ledgerStatus-topic"],
+        groupId = "market-group-ledger",
+        containerFactory = "kafkaListenerContainerFactory")
+    fun consumeLedgerStatusEvents(message: Message<Any>) {
+        val headers = message.headers
+        val payload = message.payload
+
+        logger.info("Received ledger status event with payload: $payload and headers: $headers")
+
+        if (payload is LinkedHashMap<*, *>) {
+            val ledgerStatusRequest = objectMapper.convertValue(payload, LedgerStatusRequest::class.java)
+            orderService.updateOrderSatus(ledgerStatusRequest)
+        }
+    }
 
     private fun updateScheduleEntity(scheduleEntity: ScheduleEntity) {
         when (scheduleEntity) {

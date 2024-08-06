@@ -79,8 +79,9 @@ CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
     orderable_id BIGINT NOT NULL,
     order_type order_type NOT NULL,
+    address VARCHAR(255) NOT NULL,
     created_at BIGINT not null,
-    status_type order_status_type not null
+    order_status_type order_status_type not null
 );
 
 CREATE TABLE IF NOT EXISTS offer(

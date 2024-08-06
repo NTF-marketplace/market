@@ -12,6 +12,7 @@ import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
 import com.api.market.kafka.KafkaProducer
 import com.api.market.service.dto.LedgerRequest
+import com.api.market.service.dto.LedgerStatusRequest
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
@@ -37,7 +38,7 @@ class OrderService(
                     orderableId = listing.id!!,
                     orderType = OrderType.LISTING,
                     nftId = listing.nftId,
-                    orderAddress = listing.address,
+                    orderAddress = address,
                     price = listing.price,
                     chainType = listing.chainType
                 )
@@ -70,22 +71,30 @@ class OrderService(
     ): Mono<Void> {
         return ordersRepository.save(
             Orders(
-                address = address,
+                address = orderAddress,
                 orderableId = orderableId,
                 orderType = orderType,
-                statusType = OrderStatusType.PENDING
+                orderStatusType = OrderStatusType.PENDING
             )
         ).flatMap { order ->
             kafkaProducer.sendOrderToLedgerService(
                 LedgerRequest(
                     orderId =  order.id!!,
                     nftId = nftId,
-                    address = orderAddress,
+                    address = address,
                     price = price,
                     chainType = chainType,
                     orderAddress = order.address
                 )
             )
         }
+    }
+
+    fun updateOrderSatus( request: LedgerStatusRequest): Mono<Void> {
+        return ordersRepository.findById(request.orderId).map {
+            it.update(request.status)
+        }.flatMap {
+            ordersRepository.save(it)
+        }.then()
     }
 }

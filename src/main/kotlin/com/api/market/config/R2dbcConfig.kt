@@ -55,8 +55,10 @@ class R2dbcConfig : AbstractR2dbcConfiguration() {
         converters.add(StringToEnumConverter(TokenType::class.java))
         converters.add(StatusTypeConvert(StatusType::class.java))
         converters.add(StringToEnumConverter(StatusType::class.java))
-        converters.add(StatusTypeConvert(OrderStatusType::class.java))
+        converters.add(OrderStatusTypeConvert(OrderStatusType::class.java))
+        converters.add(StringToEnumConverter(OrderStatusType::class.java))
         converters.add(OrderTypeConvert(OrderType::class.java))
+        converters.add(StringToEnumConverter(OrderType::class.java))
 
         return R2dbcCustomConversions(storeConversions, converters)
     }

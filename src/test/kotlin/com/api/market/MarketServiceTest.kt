@@ -118,7 +118,7 @@ class MarketServiceTest(
             ListingCreateRequest(
                 nftId = 4L,
                 createdDate = now.plusSeconds(20),
-                endDate = now.plusSeconds(60),
+                endDate = now.plusDays(3),
                 price = BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
             ),
@@ -195,5 +195,16 @@ class MarketServiceTest(
 //         orderService.create(address,request).block()
 //     }
 //
+
+    @Test
+    fun createOrderListing() {
+        val request = OrderCreateRequest(
+            orderableId = 1L,
+            orderType = OrderType.LISTING
+        )
+        orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request).block()
+        Thread.sleep(360000)
+
+    }
 
 }
