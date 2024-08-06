@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: market
+  cloud:
+    config:
+      uri: https://localhost:9000
+      fail-fast: true
+  profiles:
+    active: local

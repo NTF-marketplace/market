@@ -1,0 +1,55 @@
+#
+#spring:
+#  application:
+#    name: market
+#  datasource:
+#    url: jdbc:postgresql://localhost:5436/market
+#    username: market
+#    password: market
+#  flyway:
+#    locations: classpath:db/migration
+#  r2dbc:
+#    url: r2dbc:postgresql://localhost:5436/market
+#    username: market
+#    password: market
+#
+#  rabbitmq:
+#    host: localhost
+#    port: 5672
+#    username: closeSea
+#    password: closeSeaP@ssword
+#  kafka:
+#    bootstrap-servers: localhost:9092
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#    consumer:
+#      group-id: market-group
+#      auto-offset-reset: earliest
+#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+#      properties:
+#        spring.json.trusted.packages: "*"
+#    streams:
+#      application-id: market-streams
+#      properties:
+#        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+#        default.value.serde: org.springframework.kafka.support.serializer.JsonSerde
+#        spring.json.trusted.packages: "*"
+#        spring.json.value.default.type: com.api.market.domain.listing.Listing
+#
+#
+#server:
+#  port: 8085
+#
+#wallet:
+#  uri: "http://localhost:8083"
+
+spring:
+  application:
+    name: market
+  config:
+    import: "optional:configserver:http://localhost:9000"
+  cloud:
+    config:
+      fail-fast: true
