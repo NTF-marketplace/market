@@ -90,6 +90,7 @@ class OrderService(
         }
     }
 
+    // 체결된거면, 해당 nft서비스에서도 상태변경 해야되는거 아닌가?
     fun updateOrderSatus( request: LedgerStatusRequest): Mono<Void> {
         return ordersRepository.findById(request.orderId).map {
             it.update(request.status)

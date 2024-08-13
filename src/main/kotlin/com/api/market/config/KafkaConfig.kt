@@ -2,6 +2,7 @@ package com.api.market.config
 
 import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
+import com.api.market.kafka.OrderIdPartitioner
 import com.api.market.kafka.stream.storage.RocksDBConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.jsontype.NamedType
@@ -89,7 +90,8 @@ class KafkaConfig {
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
-            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true
+            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
+            ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java
         )
         return DefaultKafkaProducerFactory(configProps)
     }
