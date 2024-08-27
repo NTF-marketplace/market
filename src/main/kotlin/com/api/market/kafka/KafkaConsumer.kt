@@ -62,7 +62,7 @@ class KafkaConsumer(
 
         if (payload is LinkedHashMap<*, *>) {
             val ledgerStatusRequest = objectMapper.convertValue(payload, LedgerStatusRequest::class.java)
-            orderService.updateOrderSatus(ledgerStatusRequest).subscribe()
+            orderService.updateOrderStatus(ledgerStatusRequest).subscribe()
         }
     }
 

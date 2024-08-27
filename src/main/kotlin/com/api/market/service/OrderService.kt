@@ -3,6 +3,7 @@ package com.api.market.service
 import com.api.market.controller.dto.request.OrderCreateRequest
 import com.api.market.domain.auction.Auction
 import com.api.market.domain.auction.AuctionRepository
+import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
 import com.api.market.domain.orders.Orders
 import com.api.market.domain.orders.repository.OrdersRepository
@@ -10,10 +11,14 @@ import com.api.market.enums.ChainType
 import com.api.market.enums.OrderStatusType
 import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
+import com.api.market.kafka.KafkaConsumer
 import com.api.market.kafka.KafkaProducer
 import com.api.market.service.dto.LedgerRequest
 import com.api.market.service.dto.LedgerStatusRequest
+import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
 
@@ -22,12 +27,12 @@ class OrderService(
     private val ordersRepository: OrdersRepository,
     private val listingRepository: ListingRepository,
     private val kafkaProducer: KafkaProducer,
-    private val auctionRepository: AuctionRepository,
     private val offerService: OfferService,
+    private val listingService: ListingService,
+    @Lazy private val auctionService: AuctionService,
 ) {
-    // 주문생성(pending) -> 응답후 ->  Ledger 서비스에서 체결로직 완료되면 -> market서비스에서 상태값 변경
-    // 체결 Transfer로 요청하고 transfer success 받으면 ledgerLog 생성
-    // transfer log를 만드는것도 나쁘지 않다고 생각함
+
+    private val logger = LoggerFactory.getLogger(OrderService::class.java)
 
     fun createListingOrder(address: String, request: OrderCreateRequest): Mono<Void> {
         return listingRepository.findByIdAndStatusType(request.orderableId, StatusType.ACTIVED)
@@ -90,12 +95,26 @@ class OrderService(
         }
     }
 
-    // 체결된거면, 해당 nft서비스에서도 상태변경 해야되는거 아닌가?
-    fun updateOrderSatus( request: LedgerStatusRequest): Mono<Void> {
-        return ordersRepository.findById(request.orderId).map {
-            it.update(request.status)
-        }.flatMap {
-            ordersRepository.save(it)
-        }.then()
+    @Transactional
+    fun updateOrderStatus(request: LedgerStatusRequest): Mono<Void> {
+        return ordersRepository.findById(request.orderId)
+            .flatMap { order ->
+                val updatedOrder = order.update(request.status)
+                ordersRepository.save(updatedOrder).then(
+                    processStatusUpdate(updatedOrder, request)
+                )
+            }.then()
     }
+
+    private fun processStatusUpdate(order: Orders, request: LedgerStatusRequest): Mono<Void> {
+        return if (request.status == OrderStatusType.COMPLETED) {
+            when (order.orderType) {
+                OrderType.LISTING -> listingService.updateStatusLeger(order.orderableId)
+                OrderType.AUCTION -> auctionService.updateStatusLeger(order.orderableId)
+            }
+        } else {
+            Mono.empty()
+        }
+    }
+
 }

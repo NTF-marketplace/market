@@ -85,6 +85,18 @@ class ListingService(
             }
     }
 
+    fun updateStatusLeger(orderId: Long): Mono<Void> {
+        return listingRepository.findById(orderId)
+            .flatMap { listing ->
+                val updatedEntity = listing.updateStatus(StatusType.LEDGER)
+                if (updatedEntity is Listing) {
+                    update(updatedEntity).then()
+                } else {
+                    Mono.error(IllegalStateException("Expected a Listing but got ${updatedEntity::class.simpleName}"))
+                }
+            }
+    }
+
     private fun Listing.toResponse() = ListingResponse (
         id = this.id!!,
         nftId = this.nftId,

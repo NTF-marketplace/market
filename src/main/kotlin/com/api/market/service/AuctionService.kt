@@ -81,6 +81,17 @@ class AuctionService(
             }
     }
 
+    fun updateStatusLeger(orderId: Long): Mono<Void> {
+        return auctionRepository.findById(orderId)
+            .flatMap { auction ->
+                val updatedEntity = auction.updateStatus(StatusType.LEDGER)
+                if (updatedEntity is Auction) {
+                    update(updatedEntity).then()
+                } else {
+                    Mono.error(IllegalStateException("Expected an Auction but got ${updatedEntity::class.simpleName}"))
+                }
+            }
+    }
 
     private fun Auction.toResponse() = AuctionResponse (
         id = this.id!!,

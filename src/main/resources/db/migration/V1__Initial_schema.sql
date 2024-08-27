@@ -28,7 +28,8 @@ CREATE TYPE status_type AS ENUM (
     'ACTIVED',
     'RESERVATION_CANCEL',
     'CANCEL',
-    'EXPIRED'
+    'EXPIRED',
+    'LEDGER'
     );
 
 CREATE TYPE order_status_type AS ENUM (

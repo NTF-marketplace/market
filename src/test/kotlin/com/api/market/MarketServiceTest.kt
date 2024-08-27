@@ -116,7 +116,7 @@ class MarketServiceTest(
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 4L,
+                nftId = 5L,
                 createdDate = now.plusSeconds(20),
                 endDate = now.plusDays(3),
                 price = BigDecimal("1.23"),
@@ -203,7 +203,13 @@ class MarketServiceTest(
             orderType = OrderType.LISTING
         )
         orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request).block()
-        Thread.sleep(360000)
+
+        val request1 = OrderCreateRequest(
+            orderableId = 1L,
+            orderType = OrderType.LISTING
+        )
+        orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request1).block()
+        Thread.sleep(380000)
 
     }
 
