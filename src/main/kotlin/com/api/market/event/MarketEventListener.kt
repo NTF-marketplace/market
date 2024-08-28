@@ -11,6 +11,7 @@ class MarketEventListener(
 ) {
     @EventListener
     fun listingUpdated(event: ListingUpdatedEvent) {
+        println("?")
         provider.listingSend(event.listing)
     }
 

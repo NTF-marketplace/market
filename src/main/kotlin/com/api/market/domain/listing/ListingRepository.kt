@@ -12,5 +12,5 @@ interface ListingRepository: ReactiveCrudRepository<Listing,Long> {
 
     fun findByIdAndStatusType(id: Long, statusType: StatusType): Mono<Listing>
 
-    fun findAllByNftIdAndStatusType(nftId: Long, statusType: StatusType): Flux<Listing>
+    fun findAllByNftIdAndStatusTypeIn(nftId: Long, statusType: Collection<StatusType>): Flux<Listing>
 }

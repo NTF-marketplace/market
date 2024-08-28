@@ -21,8 +21,7 @@ class ListingService(
 ) {
 
     fun listingHistory(nftId: Long) : Flux<Listing> {
-        return listingRepository.findAllByNftIdAndStatusType(nftId,StatusType.EXPIRED)
-
+        return listingRepository.findAllByNftIdAndStatusTypeIn(nftId, listOf(StatusType.EXPIRED,StatusType.LEDGER))
     }
 
     fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
@@ -78,6 +77,7 @@ class ListingService(
                     )
                     listingRepository.save(newListing)
                         .flatMap { savedListing ->
+                            println("savedListing : " + savedListing.toString())
                             kafkaProducer.sendScheduleEntity("listing-events", savedListing)
                                 .thenReturn(savedListing)
                         }

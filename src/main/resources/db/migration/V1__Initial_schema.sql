@@ -45,17 +45,17 @@ CREATE TYPE order_type AS ENUM (
     );
 
 
-CREATE TABLE IF NOT EXISTS nft (
-    id BIGINT PRIMARY KEY,
-    token_id VARCHAR(255) NOT NULL,
-    token_address VARCHAR(255) NOT NULL,
-    chain_type chain_type NOT NULL
-    );
+-- CREATE TABLE IF NOT EXISTS nft (
+--     id BIGINT PRIMARY KEY,
+--     token_id VARCHAR(255) NOT NULL,
+--     token_address VARCHAR(255) NOT NULL,
+--     chain_type chain_type NOT NULL
+--     );
 
 
 CREATE TABLE IF NOT EXISTS listing (
     id SERIAL PRIMARY KEY,
-    nft_id BIGINT REFERENCES nft(id),
+    nft_id BIGINT,
     address VARCHAR(255) NOT NULL,
     created_date BIGINT not null,
     end_date BIGINT not null,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS listing (
 
 CREATE TABLE IF NOT EXISTS auction (
     id SERIAL PRIMARY KEY,
-    nft_id BIGINT REFERENCES nft(id),
+    nft_id BIGINT,
     address VARCHAR(255) NOT NULL,
     created_date BIGINT not null,
     end_date BIGINT not null,
