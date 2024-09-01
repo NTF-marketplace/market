@@ -7,6 +7,8 @@ import com.api.market.domain.auction.Auction
 import com.api.market.enums.StatusType
 import com.api.market.event.AuctionUpdatedEvent
 import com.api.market.kafka.KafkaProducer
+import com.api.market.service.external.RedisService
+import com.api.market.service.external.WalletApiService
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
@@ -17,7 +19,8 @@ class AuctionService(
     private val auctionRepository: AuctionRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
-    private val orderService: OrderService
+    private val orderService: OrderService,
+    private val redisService: RedisService,
 ) {
 
     fun findByActivedAuctionId(auctionId: Long): Mono<Auction> {
@@ -28,15 +31,20 @@ class AuctionService(
     }
 
     fun create(address: String,request: AuctionCreateRequest) : Mono<Auction> {
-        return walletApiService.validNftByAddress(address, request.nftId)
-            .flatMap { nftExists ->
-                if(nftExists) {
-                    saveAuction(address,request)
-                } else {
-                    Mono.error(IllegalArgumentException("Invalid NFT ID"))
-                }
+        return redisService.getNft(request.nftId)
+            .switchIfEmpty(Mono.error(IllegalArgumentException("")))
+            .flatMap {
+                walletApiService.validNftByAddress(address, request.nftId)
+                    .flatMap { nftExists ->
+                        if(nftExists) {
+                            saveAuction(address,request)
+                        } else {
+                            Mono.error(IllegalArgumentException("Invalid NFT ID"))
+                        }
+                    }
+                    .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
             }
-            .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
+
     }
 
 

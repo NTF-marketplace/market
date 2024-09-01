@@ -10,6 +10,12 @@ enum class ChainType {
     POLYGON_AMOY,
 }
 
+enum class ContractType{
+    ERC1155,
+    ERC721
+}
+
+
 enum class TokenType { MATIC, ETH }
 
 enum class StatusType { RESERVATION, ACTIVED, RESERVATION_CANCEL, CANCEL, EXPIRED, LEDGER }

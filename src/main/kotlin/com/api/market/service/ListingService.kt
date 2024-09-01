@@ -7,10 +7,13 @@ import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.StatusType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
+import com.api.market.service.external.RedisService
+import com.api.market.service.external.WalletApiService
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.kotlin.core.publisher.switchIfEmpty
 
 @Service
 class ListingService(
@@ -18,6 +21,7 @@ class ListingService(
     private val listingRepository: ListingRepository,
     private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
+    private val redisService: RedisService,
 ) {
 
     fun listingHistory(nftId: Long) : Flux<Listing> {
@@ -25,15 +29,19 @@ class ListingService(
     }
 
     fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
-        return walletApiService.validNftByAddress(address, request.nftId)
-            .flatMap { nftExists ->
-                if (nftExists) {
-                    saveListing(address,request)
-                } else {
-                    Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
-                }
+        return redisService.getNft(request.nftId)
+            .switchIfEmpty(Mono.error(IllegalArgumentException("nft not found")))
+            .flatMap {
+                walletApiService.validNftByAddress(address, request.nftId)
+                    .flatMap { nftExists ->
+                        if (nftExists) {
+                            saveListing(address,request)
+                        } else {
+                            Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
+                        }
+                    }
+                    .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
             }
-            .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
     }
 
     fun update(listing: Listing): Mono<Listing> {

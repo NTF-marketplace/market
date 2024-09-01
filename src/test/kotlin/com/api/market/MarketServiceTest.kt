@@ -9,14 +9,13 @@ import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.ChainType
 import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
-import com.api.market.enums.TokenType
 import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
 import com.api.market.rabbitMQ.RabbitMQSender
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import com.api.market.service.OrderService
-import com.api.market.service.WalletApiService
+import com.api.market.service.external.WalletApiService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
