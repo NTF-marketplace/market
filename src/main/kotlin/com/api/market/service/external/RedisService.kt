@@ -2,16 +2,16 @@ package com.api.market.service.external
 
 import com.api.market.service.dto.NftMetadataResponse
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
-import reactor.kotlin.core.publisher.switchIfEmpty
 
 @Service
 class RedisService(
     private val reactiveRedisTemplate: ReactiveRedisTemplate<String, Any>,
-    private val objectMapper: ObjectMapper,
+    @Qualifier("redisObjectMapper") private val objectMapper: ObjectMapper,
     private val nftApiService: NftApiService,
 ) {
 

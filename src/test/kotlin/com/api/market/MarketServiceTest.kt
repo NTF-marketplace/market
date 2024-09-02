@@ -15,6 +15,7 @@ import com.api.market.rabbitMQ.RabbitMQSender
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import com.api.market.service.OrderService
+import com.api.market.service.external.RedisService
 import com.api.market.service.external.WalletApiService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
@@ -38,6 +39,7 @@ class MarketServiceTest(
     @Autowired private val walletApiService: WalletApiService,
     @Autowired private val rabbitMQSender: RabbitMQSender,
     @Autowired private val auctionService: AuctionService,
+    @Autowired private val redisService: RedisService,
 ) {
 
 
@@ -114,7 +116,7 @@ class MarketServiceTest(
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 5L,
+                nftId = 3L,
                 createdDate = now.plusSeconds(50),
                 endDate = now.plusDays(3),
                 price = BigDecimal("1.23"),
@@ -197,7 +199,7 @@ class MarketServiceTest(
     @Test
     fun createOrderListing() {
         val request = OrderCreateRequest(
-            orderableId = 2L,
+            orderableId = 1L,
             orderType = OrderType.LISTING
         )
         orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request).block()
@@ -211,4 +213,9 @@ class MarketServiceTest(
 
     }
 
+    @Test
+    fun redis() {
+        val res = redisService.getNft(4L).block()
+        println(res.toString())
+    }
 }

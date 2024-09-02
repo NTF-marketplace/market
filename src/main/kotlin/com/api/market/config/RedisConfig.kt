@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.context.annotation.Primary
 import org.springframework.data.redis.connection.RedisClusterConfiguration
 import org.springframework.data.redis.connection.RedisPassword
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration
@@ -46,6 +47,7 @@ class RedisConfig {
     }
 
     @Bean
+    @Primary
     fun redisObjectMapper(): ObjectMapper {
         return jacksonObjectMapper().registerModule(
             KotlinModule.Builder()
