@@ -36,6 +36,7 @@ class ActivationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
 
         when (scheduleEntity.statusType) {
             StatusType.RESERVATION -> {
+                println("zzzzzz")
                 if (now >= scheduleEntity.createdDate) {
                     return activateScheduleEntity(key, scheduleEntity)
                 } else {
@@ -55,6 +56,7 @@ class ActivationProcessor : Transformer<String, ScheduleEntity, KeyValue<String,
     }
 
     private fun scheduleActivation(key: String, scheduleEntity: ScheduleEntity) {
+        println("들어오긴하냐?")
         stateStore.put(key, scheduleEntity) // 저장소 저장
         scheduledActivations.add(ScheduledActivation(key, scheduleEntity.createdDate)) // 우선순위 큐에 저장
         logger.info("Scheduled activation - key: $key, activation time: ${scheduleEntity.createdDate}")

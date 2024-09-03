@@ -48,29 +48,35 @@ class KafkaConfig {
     @Bean
     fun listingEventsTopic(): NewTopic = TopicBuilder.name("listing-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun auctionEventsTopic(): NewTopic = TopicBuilder.name("auction-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun processedEventsTopic(): NewTopic = TopicBuilder.name("processed-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun activatedEventsTopic(): NewTopic = TopicBuilder.name("activated-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun ledgerTopic(): NewTopic = TopicBuilder.name("ledger-topic")
+        .partitions(4)
+        .replicas(3)
+        .build()
+
+    @Bean
+    fun saleTopic(): NewTopic = TopicBuilder.name("sale-topic")
         .partitions(4)
         .replicas(1)
         .build()
@@ -131,6 +137,7 @@ class KafkaConfig {
     // -------------------------------------
     @Bean(name = ["defaultKafkaStreamsConfig"])
     fun kStreamsConfig(): KafkaStreamsConfiguration {
+        logger.info("Bootstrap servers: $bootstrapServers")
         val props = mapOf(
             StreamsConfig.APPLICATION_ID_CONFIG to "market-streams",
             StreamsConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,

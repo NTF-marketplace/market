@@ -15,6 +15,8 @@ import com.api.market.rabbitMQ.RabbitMQSender
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import com.api.market.service.OrderService
+import com.api.market.service.dto.LedgerRequest
+import com.api.market.service.dto.SaleResponse
 import com.api.market.service.external.RedisService
 import com.api.market.service.external.WalletApiService
 import kotlinx.coroutines.runBlocking
@@ -116,8 +118,8 @@ class MarketServiceTest(
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 3L,
-                createdDate = now.plusSeconds(50),
+                nftId = 10L,
+                createdDate = now.plusSeconds(20),
                 endDate = now.plusDays(3),
                 price = BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
@@ -217,5 +219,31 @@ class MarketServiceTest(
     fun redis() {
         val res = redisService.getNft(4L).block()
         println(res.toString())
+    }
+    @Test
+    fun kafka() {
+        kafkaProducer
+            .sendOrderToLedgerService(LedgerRequest(orderId = 1L, nftId = 3L, address = "asdasdas", price = BigDecimal(1.2), chainType = ChainType.POLYGON_MAINNET, orderAddress = "asdasda"))
+            .block()
+    }
+
+    @Test
+    fun kafka1() {
+        kafkaProducer
+            .sendSaleStatusService(
+                SaleResponse(
+                    id = 1L,
+                    nftId = 10L,
+                    address = "123123123",
+                    createdDateTime = System.currentTimeMillis(),
+                    endDateTime =System.currentTimeMillis(),
+                    statusType = StatusType.ACTIVED,
+                    startingPrice = BigDecimal(1.2),
+                    chainType = ChainType.POLYGON_MAINNET,
+                    orderType = OrderType.LISTING
+
+                )
+            )
+            .block()
     }
 }
