@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 
 @Service
 class KafkaProducer(
@@ -51,10 +52,11 @@ class KafkaProducer(
     }
 
     fun sendSaleStatusService(request: SaleResponse): Mono<Void> {
-        return Mono.create { sink ->
+        return Mono.create<Void?> { sink ->
             val future = kafkaTemplate.send("sale-topic", request.id.toString() ,request)
             future.whenComplete { result, ex ->
                 if (ex == null) {
+                    println("sent sale")
                     logger.info("Sent ledger request successfully: ${result?.recordMetadata}")
                     sink.success()
                 } else {
@@ -62,6 +64,6 @@ class KafkaProducer(
                     sink.error(ex)
                 }
             }
-        }
+        }.subscribeOn(Schedulers.boundedElastic())
     }
 }
