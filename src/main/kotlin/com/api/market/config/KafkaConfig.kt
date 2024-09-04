@@ -78,7 +78,7 @@ class KafkaConfig {
     @Bean
     fun saleTopic(): NewTopic = TopicBuilder.name("sale-topic")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
 
@@ -148,7 +148,6 @@ class KafkaConfig {
             StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG to WallclockTimestampExtractor::class.java,
             StreamsConfig.NUM_STREAM_THREADS_CONFIG to 4,
             "rocksdb.config.setter" to RocksDBConfig::class.java.name
-
         )
         return KafkaStreamsConfiguration(props)
     }

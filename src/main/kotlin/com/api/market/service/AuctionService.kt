@@ -5,11 +5,10 @@ import com.api.market.controller.dto.response.AuctionResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
 import com.api.market.enums.StatusType
-import com.api.market.event.AuctionUpdatedEvent
 import com.api.market.kafka.KafkaProducer
+import com.api.market.service.dto.SaleResponse.Companion.toResponse
 import com.api.market.service.external.RedisService
 import com.api.market.service.external.WalletApiService
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -17,7 +16,6 @@ import reactor.core.publisher.Mono
 class AuctionService(
     private val walletApiService: WalletApiService,
     private val auctionRepository: AuctionRepository,
-    private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
     private val orderService: OrderService,
     private val redisService: RedisService,
@@ -42,7 +40,7 @@ class AuctionService(
                             Mono.error(IllegalArgumentException("Invalid NFT ID"))
                         }
                     }
-                    .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
+                    .doOnSuccess { kafkaProducer.sendSaleStatusService(it.toResponse()).subscribe() }
             }
 
     }
@@ -53,7 +51,7 @@ class AuctionService(
             .map { it.update(auction) }
             .flatMap { auctionRepository.save(it) }
             .doOnSuccess {
-                eventPublisher.publishEvent(AuctionUpdatedEvent(this, it.toResponse()))
+                kafkaProducer.sendSaleStatusService(it.toResponse()).subscribe()
             }
             .flatMap {
                 if (it.statusType == StatusType.EXPIRED) {
@@ -101,14 +99,4 @@ class AuctionService(
             }
     }
 
-    private fun Auction.toResponse() = AuctionResponse (
-        id = this.id!!,
-        nftId = this.nftId,
-        address = this.address,
-        createdDateTime = this.createdDate,
-        endDateTime =  this.endDate,
-        statusType = this.statusType,
-        startingPrice = this.startingPrice,
-        chainType = this.chainType
-    )
 }
