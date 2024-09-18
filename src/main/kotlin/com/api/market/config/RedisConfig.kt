@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import io.lettuce.core.ReadFrom
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -39,6 +40,7 @@ class RedisConfig {
         )
         val clientConfig = LettuceClientConfiguration.builder()
             .commandTimeout(Duration.ofSeconds(10))
+            .readFrom(ReadFrom.REPLICA_PREFERRED)
             .build()
 
         redisClusterConfiguration.password = RedisPassword.of("bitnami")

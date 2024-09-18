@@ -36,10 +36,10 @@ class KafkaConsumer(
         }
     }
 
-    @KafkaListener(topics = ["processed-events"],
-        groupId = "market-group-processed",
+    @KafkaListener(topics = ["deactivated-events"],
+        groupId = "market-group-deactivated",
         containerFactory = "kafkaListenerContainerFactory")
-    fun consumeProcessedEvents(message: Message<Any>) {
+    fun consumeDeactivatedEvents(message: Message<Any>) {
         val headers = message.headers
         val payload = message.payload
 

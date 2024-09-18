@@ -58,7 +58,7 @@ class KafkaConfig {
         .build()
 
     @Bean
-    fun processedEventsTopic(): NewTopic = TopicBuilder.name("processed-events")
+    fun deactivatedEventsTopic(): NewTopic = TopicBuilder.name("deactivated-events")
         .partitions(4)
         .replicas(3)
         .build()
