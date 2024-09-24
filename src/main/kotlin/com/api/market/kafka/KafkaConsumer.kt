@@ -10,10 +10,7 @@ import com.api.market.service.dto.LedgerStatusRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
 import org.springframework.kafka.annotation.KafkaListener
-import org.springframework.kafka.support.KafkaHeaders
 import org.springframework.messaging.Message
-import org.springframework.messaging.handler.annotation.Header
-import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.stereotype.Service
 
 @Service
@@ -39,10 +36,10 @@ class KafkaConsumer(
         }
     }
 
-    @KafkaListener(topics = ["processed-events"],
-        groupId = "market-group-processed",
+    @KafkaListener(topics = ["deactivated-events"],
+        groupId = "market-group-deactivated",
         containerFactory = "kafkaListenerContainerFactory")
-    fun consumeProcessedEvents(message: Message<Any>) {
+    fun consumeDeactivatedEvents(message: Message<Any>) {
         val headers = message.headers
         val payload = message.payload
 
@@ -65,7 +62,7 @@ class KafkaConsumer(
 
         if (payload is LinkedHashMap<*, *>) {
             val ledgerStatusRequest = objectMapper.convertValue(payload, LedgerStatusRequest::class.java)
-            orderService.updateOrderSatus(ledgerStatusRequest)
+            orderService.updateOrderStatus(ledgerStatusRequest).subscribe()
         }
     }
 

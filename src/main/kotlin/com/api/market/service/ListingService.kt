@@ -1,13 +1,13 @@
 package com.api.market.service
 
 import com.api.market.controller.dto.request.ListingCreateRequest
-import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.StatusType
-import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
-import org.springframework.context.ApplicationEventPublisher
+import com.api.market.service.dto.SaleResponse.Companion.toResponse
+import com.api.market.service.external.RedisService
+import com.api.market.service.external.WalletApiService
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
@@ -16,34 +16,41 @@ import reactor.core.publisher.Mono
 class ListingService(
     private val walletApiService: WalletApiService,
     private val listingRepository: ListingRepository,
-    private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
+    private val redisService: RedisService,
 ) {
 
     fun listingHistory(nftId: Long) : Flux<Listing> {
-        return listingRepository.findAllByNftIdAndStatusType(nftId,StatusType.EXPIRED)
-
+        return listingRepository.findAllByNftIdAndStatusTypeIn(nftId, listOf(StatusType.EXPIRED,StatusType.LEDGER))
     }
 
-    fun create(address: String,request: ListingCreateRequest): Mono<Listing> {
-        return walletApiService.validNftByAddress(address, request.nftId)
-            .flatMap { nftExists ->
-                if (nftExists) {
-                    saveListing(address,request)
-                } else {
-                    Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
-                }
+    fun create1(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return redisService.getNft(request.nftId)
+            .switchIfEmpty(Mono.error(IllegalArgumentException("nft not found")))
+            .flatMap {
+                walletApiService.validNftByAddress(address, request.nftId)
+                    .flatMap { nftExists ->
+                        if (nftExists) {
+                            saveListing(address,request)
+                        } else {
+                            Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
+                        }
+                    }
+                    .doOnSuccess { listing ->
+                        kafkaProducer.sendSaleStatusService(listing.toResponse())
+                            .subscribe()
+                    }
             }
-            .doOnSuccess { eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
     }
+
 
     fun update(listing: Listing): Mono<Listing> {
         return listingRepository.findById(listing.id!!)
             .map { it.update(listing) }
             .flatMap { listingRepository.save(it) }
-           .doOnSuccess {
-               println("send Listing : " + listing.statusType)
-               eventPublisher.publishEvent(ListingUpdatedEvent(this,it.toResponse())) }
+            .doOnSuccess {
+                kafkaProducer.sendSaleStatusService(listing.toResponse()).subscribe()
+            }
     }
 
     fun cancel(id: Long): Mono<Void> {
@@ -85,14 +92,16 @@ class ListingService(
             }
     }
 
-    private fun Listing.toResponse() = ListingResponse (
-        id = this.id!!,
-        nftId = this.nftId,
-        address = this.address,
-        createdDateTime = this.createdDate,
-        endDateTime =  this.endDate,
-        statusType = this.statusType,
-        price = this.price,
-        chainType = this.chainType
-    )
+    fun updateStatusLeger(orderId: Long): Mono<Void> {
+        return listingRepository.findById(orderId)
+            .flatMap { listing ->
+                val updatedEntity = listing.updateStatus(StatusType.LEDGER)
+                if (updatedEntity is Listing) {
+                    update(updatedEntity).then()
+                } else {
+                    Mono.error(IllegalStateException("Expected a Listing but got ${updatedEntity::class.simpleName}"))
+                }
+            }
+    }
+
 }

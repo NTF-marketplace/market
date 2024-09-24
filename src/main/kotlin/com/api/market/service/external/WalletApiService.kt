@@ -1,4 +1,4 @@
-package com.api.market.service
+package com.api.market.service.external
 
 import com.api.market.enums.ChainType
 import com.api.market.properties.WalletApiProperties

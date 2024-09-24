@@ -78,7 +78,7 @@ class StreamProcessor(private val streamsBuilder: StreamsBuilder) {
                 listing.statusType == StatusType.ACTIVED ||
                         listing.statusType == StatusType.CANCEL || listing.statusType == StatusType.EXPIRED
             }
-            .to("processed-events", Produced.with(Serdes.String(), scheduleEntitySerde))
+            .to("deactivated-events", Produced.with(Serdes.String(), scheduleEntitySerde))
     }
 
 }

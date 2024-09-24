@@ -1,6 +1,7 @@
 package com.api.market.controller.dto.response
 
 import com.api.market.enums.ChainType
+import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
 import java.math.BigDecimal
 
@@ -12,5 +13,6 @@ data class AuctionResponse(
     val endDateTime: Long,
     val statusType: StatusType,
     val startingPrice: BigDecimal,
-    val chainType: ChainType
+    val chainType: ChainType,
 )
+

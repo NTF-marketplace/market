@@ -9,15 +9,14 @@ import com.api.market.domain.listing.ListingRepository
 import com.api.market.enums.ChainType
 import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
-import com.api.market.enums.TokenType
-import com.api.market.event.ListingUpdatedEvent
 import com.api.market.kafka.KafkaProducer
-import com.api.market.rabbitMQ.RabbitMQSender
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
 import com.api.market.service.OrderService
-import com.api.market.service.WalletApiService
-import com.api.market.util.Utils.toChainTypes
+import com.api.market.service.dto.LedgerRequest
+import com.api.market.service.dto.SaleResponse
+import com.api.market.service.external.RedisService
+import com.api.market.service.external.WalletApiService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -38,8 +37,8 @@ class MarketServiceTest(
     @Autowired private val eventPublisher: ApplicationEventPublisher,
     @Autowired private val kafkaProducer: KafkaProducer,
     @Autowired private val walletApiService: WalletApiService,
-    @Autowired private val rabbitMQSender: RabbitMQSender,
     @Autowired private val auctionService: AuctionService,
+    @Autowired private val redisService: RedisService,
 ) {
 
 
@@ -72,13 +71,14 @@ class MarketServiceTest(
         latch.await() // 모든 요청이 완료될 때까지 대기
     }
 
+    //?
     @Test
     fun createAndCancelListings() {
         val now = ZonedDateTime.now()
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 3L,
+                nftId = 10L,
                 createdDate = now.plusSeconds(40),
                 endDate = now.plusDays(100),
                 price = BigDecimal("1.23"),
@@ -90,7 +90,7 @@ class MarketServiceTest(
             listingService.saveListing(address,request)
         }.map { it.block() }
 
-        Thread.sleep(10000)
+        Thread.sleep(20000)
 
         val cancelThread = Thread {
             createdListings.forEach { listing ->
@@ -116,9 +116,9 @@ class MarketServiceTest(
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val listings = listOf(
             ListingCreateRequest(
-                nftId = 4L,
+                nftId = 10L,
                 createdDate = now.plusSeconds(20),
-                endDate = now.plusDays(3),
+                endDate = now.plusSeconds(50),
                 price = BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
             ),
@@ -126,7 +126,7 @@ class MarketServiceTest(
         )
 
         val createdListings = listings.map { request ->
-            listingService.create(address,request)
+            listingService.create1(address,request)
         }.map { it.block() }
 
         Thread.sleep(360000)
@@ -138,7 +138,7 @@ class MarketServiceTest(
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
         val auction = listOf(
             AuctionCreateRequest(
-                nftId = 3L,
+                nftId = 5L,
                 createdDate = now.plusSeconds(20),
                 endDate = now.plusDays(3),
                 startingPrice =  BigDecimal("1.23"),
@@ -159,14 +159,6 @@ class MarketServiceTest(
     // fun cancel() {
     //     listingService.cancel(4L)
     // }
-
-
-    @Test
-    fun listingSend() {
-        val res =listingRepository.findById(4).block()
-        eventPublisher.publishEvent(ListingUpdatedEvent(this,res!!.toResponse()))
-        Thread.sleep(100000)
-    }
 
     private fun Listing.toResponse() = ListingResponse (
         id = this.id!!,
@@ -199,12 +191,49 @@ class MarketServiceTest(
     @Test
     fun createOrderListing() {
         val request = OrderCreateRequest(
-            orderableId = 1L,
+            orderableId = 14L,
             orderType = OrderType.LISTING
         )
         orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request).block()
-        Thread.sleep(360000)
+
+        // val request1 = OrderCreateRequest(
+        //     orderableId = 9L,
+        //     orderType = OrderType.LISTING
+        // )
+        // orderService.createListingOrder(address =  "0x01b82b4aa3f66f213d62d53e829bc172a6a72867", request1).block()
+        Thread.sleep(380000)
 
     }
 
+    @Test
+    fun redis() {
+        val res = redisService.getNft(4L).block()
+        println(res.toString())
+    }
+    @Test
+    fun kafka() {
+        kafkaProducer
+            .sendOrderToLedgerService(LedgerRequest(orderId = 1L, nftId = 3L, address = "asdasdas", price = BigDecimal(1.2), chainType = ChainType.POLYGON_MAINNET, orderAddress = "asdasda"))
+            .block()
+    }
+
+    @Test
+    fun kafka1() {
+        kafkaProducer
+            .sendSaleStatusService(
+                SaleResponse(
+                    id = 1L,
+                    nftId = 13L,
+                    address = "123123123",
+                    createdDateTime = System.currentTimeMillis(),
+                    endDateTime =System.currentTimeMillis(),
+                    statusType = StatusType.ACTIVED,
+                    price = BigDecimal(1.2),
+                    chainType = ChainType.POLYGON_MAINNET,
+                    orderType = OrderType.LISTING
+
+                )
+            )
+            .block()
+    }
 }

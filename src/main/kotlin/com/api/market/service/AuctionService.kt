@@ -5,9 +5,10 @@ import com.api.market.controller.dto.response.AuctionResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
 import com.api.market.enums.StatusType
-import com.api.market.event.AuctionUpdatedEvent
 import com.api.market.kafka.KafkaProducer
-import org.springframework.context.ApplicationEventPublisher
+import com.api.market.service.dto.SaleResponse.Companion.toResponse
+import com.api.market.service.external.RedisService
+import com.api.market.service.external.WalletApiService
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 
@@ -15,9 +16,9 @@ import reactor.core.publisher.Mono
 class AuctionService(
     private val walletApiService: WalletApiService,
     private val auctionRepository: AuctionRepository,
-    private val eventPublisher: ApplicationEventPublisher,
     private val kafkaProducer: KafkaProducer,
-    private val orderService: OrderService
+    private val orderService: OrderService,
+    private val redisService: RedisService,
 ) {
 
     fun findByActivedAuctionId(auctionId: Long): Mono<Auction> {
@@ -28,15 +29,20 @@ class AuctionService(
     }
 
     fun create(address: String,request: AuctionCreateRequest) : Mono<Auction> {
-        return walletApiService.validNftByAddress(address, request.nftId)
-            .flatMap { nftExists ->
-                if(nftExists) {
-                    saveAuction(address,request)
-                } else {
-                    Mono.error(IllegalArgumentException("Invalid NFT ID"))
-                }
+        return redisService.getNft(request.nftId)
+            .switchIfEmpty(Mono.error(IllegalArgumentException("")))
+            .flatMap {
+                walletApiService.validNftByAddress(address, request.nftId)
+                    .flatMap { nftExists ->
+                        if(nftExists) {
+                            saveAuction(address,request)
+                        } else {
+                            Mono.error(IllegalArgumentException("Invalid NFT ID"))
+                        }
+                    }
+                    .doOnSuccess { kafkaProducer.sendSaleStatusService(it.toResponse()).subscribe() }
             }
-            .doOnSuccess { eventPublisher.publishEvent(AuctionUpdatedEvent(this,it.toResponse())) }
+
     }
 
 
@@ -45,7 +51,7 @@ class AuctionService(
             .map { it.update(auction) }
             .flatMap { auctionRepository.save(it) }
             .doOnSuccess {
-                eventPublisher.publishEvent(AuctionUpdatedEvent(this, it.toResponse()))
+                kafkaProducer.sendSaleStatusService(it.toResponse()).subscribe()
             }
             .flatMap {
                 if (it.statusType == StatusType.EXPIRED) {
@@ -81,15 +87,16 @@ class AuctionService(
             }
     }
 
+    fun updateStatusLeger(orderId: Long): Mono<Void> {
+        return auctionRepository.findById(orderId)
+            .flatMap { auction ->
+                val updatedEntity = auction.updateStatus(StatusType.LEDGER)
+                if (updatedEntity is Auction) {
+                    update(updatedEntity).then()
+                } else {
+                    Mono.error(IllegalStateException("Expected an Auction but got ${updatedEntity::class.simpleName}"))
+                }
+            }
+    }
 
-    private fun Auction.toResponse() = AuctionResponse (
-        id = this.id!!,
-        nftId = this.nftId,
-        address = this.address,
-        createdDateTime = this.createdDate,
-        endDateTime =  this.endDate,
-        statusType = this.statusType,
-        startingPrice = this.startingPrice,
-        chainType = this.chainType
-    )
 }

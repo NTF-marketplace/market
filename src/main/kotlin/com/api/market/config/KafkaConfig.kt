@@ -2,6 +2,7 @@ package com.api.market.config
 
 import com.api.market.domain.auction.Auction
 import com.api.market.domain.listing.Listing
+import com.api.market.kafka.OrderIdPartitioner
 import com.api.market.kafka.stream.storage.RocksDBConfig
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.jsontype.NamedType
@@ -47,31 +48,37 @@ class KafkaConfig {
     @Bean
     fun listingEventsTopic(): NewTopic = TopicBuilder.name("listing-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun auctionEventsTopic(): NewTopic = TopicBuilder.name("auction-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
-    fun processedEventsTopic(): NewTopic = TopicBuilder.name("processed-events")
+    fun deactivatedEventsTopic(): NewTopic = TopicBuilder.name("deactivated-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun activatedEventsTopic(): NewTopic = TopicBuilder.name("activated-events")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
         .build()
 
     @Bean
     fun ledgerTopic(): NewTopic = TopicBuilder.name("ledger-topic")
         .partitions(4)
-        .replicas(1)
+        .replicas(3)
+        .build()
+
+    @Bean
+    fun saleTopic(): NewTopic = TopicBuilder.name("sale-topic")
+        .partitions(4)
+        .replicas(3)
         .build()
 
 
@@ -89,7 +96,8 @@ class KafkaConfig {
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
-            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true
+            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
+            ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java
         )
         return DefaultKafkaProducerFactory(configProps)
     }
@@ -129,6 +137,7 @@ class KafkaConfig {
     // -------------------------------------
     @Bean(name = ["defaultKafkaStreamsConfig"])
     fun kStreamsConfig(): KafkaStreamsConfiguration {
+        logger.info("Bootstrap servers: $bootstrapServers")
         val props = mapOf(
             StreamsConfig.APPLICATION_ID_CONFIG to "market-streams",
             StreamsConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
@@ -139,7 +148,6 @@ class KafkaConfig {
             StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG to WallclockTimestampExtractor::class.java,
             StreamsConfig.NUM_STREAM_THREADS_CONFIG to 4,
             "rocksdb.config.setter" to RocksDBConfig::class.java.name
-
         )
         return KafkaStreamsConfiguration(props)
     }

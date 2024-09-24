@@ -3,7 +3,6 @@ package com.api.market.domain.listing
 import com.api.market.domain.ScheduleEntity
 import com.api.market.enums.ChainType
 import com.api.market.enums.StatusType
-import com.api.market.enums.TokenType
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
