@@ -79,7 +79,8 @@ class OrderService(
                 address = orderAddress,
                 orderableId = orderableId,
                 orderType = orderType,
-                orderStatusType = OrderStatusType.PENDING
+                orderStatusType = OrderStatusType.PENDING,
+                ledgerPrice = null
             )
         ).flatMap { order ->
             kafkaProducer.sendOrderToLedgerService(
@@ -99,7 +100,7 @@ class OrderService(
     fun updateOrderStatus(request: LedgerStatusRequest): Mono<Void> {
         return ordersRepository.findById(request.orderId)
             .flatMap { order ->
-                val updatedOrder = order.update(request.status)
+                val updatedOrder = order.update(request.status,request.ledgerPrice)
                 ordersRepository.save(updatedOrder).then(
                     processStatusUpdate(updatedOrder, request)
                 )
