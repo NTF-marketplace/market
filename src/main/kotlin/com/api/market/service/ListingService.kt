@@ -20,10 +20,6 @@ class ListingService(
     private val redisService: RedisService,
 ) {
 
-    fun listingHistory(nftId: Long) : Flux<Listing> {
-        return listingRepository.findAllByNftIdAndStatusTypeIn(nftId, listOf(StatusType.EXPIRED,StatusType.LEDGER))
-    }
-
     fun create1(address: String,request: ListingCreateRequest): Mono<Listing> {
         return redisService.getNft(request.nftId)
             .switchIfEmpty(Mono.error(IllegalArgumentException("nft not found")))
@@ -37,8 +33,8 @@ class ListingService(
                         }
                     }
                     .doOnSuccess { listing ->
-                        kafkaProducer.sendSaleStatusService(listing.toResponse())
-                            .subscribe()
+                        kafkaProducer.sendSaleStatusService(listing.toResponse()).subscribe()
+
                     }
             }
     }
@@ -102,6 +98,11 @@ class ListingService(
                     Mono.error(IllegalStateException("Expected a Listing but got ${updatedEntity::class.simpleName}"))
                 }
             }
+    }
+
+
+    fun getListingByNftId(nftId: Long, status: StatusType): Flux<Listing> {
+        return listingRepository.findAllByNftIdAndStatusTypeIn(nftId, listOf(status))
     }
 
 }

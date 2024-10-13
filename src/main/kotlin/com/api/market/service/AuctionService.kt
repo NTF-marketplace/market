@@ -10,6 +10,7 @@ import com.api.market.service.dto.SaleResponse.Companion.toResponse
 import com.api.market.service.external.RedisService
 import com.api.market.service.external.WalletApiService
 import org.springframework.stereotype.Service
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 
 @Service
@@ -20,6 +21,10 @@ class AuctionService(
     private val orderService: OrderService,
     private val redisService: RedisService,
 ) {
+
+    fun getAuctionByNfId(nftId:Long , status: StatusType): Flux<Auction> {
+        return auctionRepository.findByNftIdAndStatusType(nftId,status)
+    }
 
     fun findByActivedAuctionId(auctionId: Long): Mono<Auction> {
         return auctionRepository.findByIdAndStatusType(auctionId,StatusType.ACTIVED)

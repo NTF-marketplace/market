@@ -8,5 +8,5 @@ interface OfferRepository : ReactiveCrudRepository<Offer,Long> {
 
     fun findFirstByAuctionIdOrderByPriceDesc(auctionId: Long): Mono<Offer>
 
-    fun findAllByAuctionId(auctionId: Long): Flux<Offer>
+    fun findAllByAuctionIdOrderByCreatedAtDesc(auctionId: Long): Flux<Offer>
 }
