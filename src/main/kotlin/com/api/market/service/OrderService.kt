@@ -111,7 +111,7 @@ class OrderService(
                 orderableId = orderableId,
                 orderType = orderType,
                 orderStatusType = OrderStatusType.PENDING,
-                ledgerPrice = null
+                ledgerPrice = price
             )
         ).flatMap { order ->
             kafkaProducer.sendOrderToLedgerService(

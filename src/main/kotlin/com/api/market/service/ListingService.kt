@@ -20,14 +20,18 @@ class ListingService(
     private val redisService: RedisService,
 ) {
 
-    fun create1(address: String,request: ListingCreateRequest): Mono<Listing> {
+    fun listingHistory(nftId: Long) : Flux<Listing> {
+        return listingRepository.findAllByNftIdAndStatusTypeIn(nftId, listOf(StatusType.EXPIRED,StatusType.LEDGER))
+    }
+
+    fun create(address: String, request: ListingCreateRequest): Mono<Listing> {
         return redisService.getNft(request.nftId)
-            .switchIfEmpty(Mono.error(IllegalArgumentException("nft not found")))
+            .switchIfEmpty(Mono.error(IllegalArgumentException("NFT not found")))
             .flatMap {
                 walletApiService.validNftByAddress(address, request.nftId)
                     .flatMap { nftExists ->
                         if (nftExists) {
-                            saveListing(address,request)
+                            saveListing(address, request)
                         } else {
                             Mono.error(IllegalArgumentException("Invalid NFT ID or NFT ID not found"))
                         }
@@ -38,7 +42,6 @@ class ListingService(
                     }
             }
     }
-
 
     fun update(listing: Listing): Mono<Listing> {
         return listingRepository.findById(listing.id!!)
@@ -64,11 +67,11 @@ class ListingService(
     }
 
 
-    fun saveListing(address: String,request: ListingCreateRequest): Mono<Listing> {
+    fun saveListing(address: String, request: ListingCreateRequest): Mono<Listing> {
         return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, address, StatusType.RESERVATION)
             .flatMap { exists ->
                 if (exists) {
-                    Mono.empty()
+                    Mono.error(ListingAlreadyExistsException("Listing already exists for NFT ${request.nftId} and address $address"))
                 } else {
                     val newListing = Listing(
                         nftId = request.nftId,
@@ -81,13 +84,14 @@ class ListingService(
                     )
                     listingRepository.save(newListing)
                         .flatMap { savedListing ->
-                            kafkaProducer.sendScheduleEntity("listing-events", savedListing)
-                                .thenReturn(savedListing)
+                            Mono.zip(
+                                kafkaProducer.sendScheduleEntity("listing-events", savedListing),
+                                kafkaProducer.sendSaleStatusService(savedListing.toResponse())
+                            ).thenReturn(savedListing)
                         }
                 }
             }
     }
-
     fun updateStatusLeger(orderId: Long): Mono<Void> {
         return listingRepository.findById(orderId)
             .flatMap { listing ->
@@ -106,3 +110,5 @@ class ListingService(
     }
 
 }
+
+class ListingAlreadyExistsException(message: String) : RuntimeException(message)

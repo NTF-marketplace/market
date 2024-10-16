@@ -2,6 +2,7 @@ package com.api.market
 
 import com.api.market.controller.dto.request.AuctionCreateRequest
 import com.api.market.controller.dto.request.ListingCreateRequest
+import com.api.market.controller.dto.request.OfferCreateRequest
 import com.api.market.controller.dto.request.OrderCreateRequest
 import com.api.market.controller.dto.response.ListingResponse
 import com.api.market.domain.listing.Listing
@@ -12,6 +13,7 @@ import com.api.market.enums.StatusType
 import com.api.market.kafka.KafkaProducer
 import com.api.market.service.AuctionService
 import com.api.market.service.ListingService
+import com.api.market.service.OfferService
 import com.api.market.service.OrderService
 import com.api.market.service.dto.LedgerRequest
 import com.api.market.service.dto.SaleResponse
@@ -39,12 +41,9 @@ class MarketServiceTest(
     @Autowired private val walletApiService: WalletApiService,
     @Autowired private val auctionService: AuctionService,
     @Autowired private val redisService: RedisService,
+    @Autowired private val orderService: OrderService,
+    @Autowired private val offerService: OfferService,
 ) {
-
-
-    @Autowired
-    private lateinit var orderService: OrderService
-
     @Test
     fun createListing() {
         val latch = CountDownLatch(1000)
@@ -71,6 +70,8 @@ class MarketServiceTest(
         latch.await() // 모든 요청이 완료될 때까지 대기
     }
 
+
+
     //?
     @Test
     fun createAndCancelListings() {
@@ -79,7 +80,7 @@ class MarketServiceTest(
         val listings = listOf(
             ListingCreateRequest(
                 nftId = 10L,
-                createdDate = now.plusSeconds(40),
+                createdDate = now.plusSeconds(20),
                 endDate = now.plusDays(100),
                 price = BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
@@ -90,7 +91,7 @@ class MarketServiceTest(
             listingService.saveListing(address,request)
         }.map { it.block() }
 
-        Thread.sleep(20000)
+        Thread.sleep(40000)
 
         val cancelThread = Thread {
             createdListings.forEach { listing ->
@@ -109,27 +110,84 @@ class MarketServiceTest(
 
         cancelThread.join()
     }
+    @Test
+    fun createAndOrderListings() {
+        val now = ZonedDateTime.now()
+        val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
+        val listings = listOf(
+            ListingCreateRequest(
+                nftId = 4L,
+                createdDate = now.plusSeconds(20),
+                endDate = now.plusDays(100),
+                price = BigDecimal("1.23"),
+                chainType = ChainType.POLYGON_MAINNET
+            )
+        )
+
+        val createdListings = listings.map { request ->
+            listingService.saveListing(address,request)
+        }.map { it.block() }
+
+        Thread.sleep(40000)
+
+        val cancelThread = Thread {
+            createdListings.forEach { listing ->
+                listing?.let {
+                    runBlocking {
+                        orderService.createListingOrder("0x01b72b4aa3f66f213d62d53e829bc172a6a72868",
+                            OrderCreateRequest(orderableId = it.id!!,OrderType.LISTING)
+                        ).block()
+                        println("ordered listing with ID: ${it.id}")
+                    }
+                }
+            }
+        }
+
+        cancelThread.start()
+
+        Thread.sleep(360000)
+
+        cancelThread.join()
+    }
 
     @Test
     fun createMultipleListings() {
         val now = ZonedDateTime.now()
         val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
-        val listings = listOf(
-            ListingCreateRequest(
-                nftId = 10L,
+        val auction = listOf(
+            AuctionCreateRequest(
+                nftId = 1L,
                 createdDate = now.plusSeconds(20),
                 endDate = now.plusSeconds(50),
-                price = BigDecimal("1.23"),
+                startingPrice =  BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
             ),
-
         )
 
-        val createdListings = listings.map { request ->
-            listingService.create1(address,request)
+        Thread.sleep(40000)
+
+        val createdAuctions = auction.map { request ->
+            auctionService.create(address,request)
         }.map { it.block() }
 
+        val cancelThread = Thread {
+            createdAuctions.forEach { auction ->
+                auction?.let {
+                    runBlocking {
+                        offerService.create("0x01b72b4aa3f66f213d62d53e829bc172a6a72868",
+                            OfferCreateRequest(auctionId = it.id!!, BigDecimal(2.8))
+                        ).block()
+                        println("ordered auction with ID: ${it.id}")
+                    }
+                }
+            }
+        }
+
+        cancelThread.start()
+
         Thread.sleep(360000)
+
+        cancelThread.join()
     }
 
     @Test
@@ -235,5 +293,28 @@ class MarketServiceTest(
                 )
             )
             .block()
+    }
+
+
+    @Test
+    fun listing_reservation() {
+        val now = ZonedDateTime.now()
+        val address = "0x01b72b4aa3f66f213d62d53e829bc172a6a72867"
+        val listings = listOf(
+            ListingCreateRequest(
+                nftId = 1L,
+                createdDate = now.plusSeconds(30),
+                endDate = now.plusSeconds(50),
+                price = BigDecimal("1.23"),
+                chainType = ChainType.POLYGON_MAINNET
+            )
+        )
+
+        listings.map { request ->
+            listingService.saveListing(address,request)
+        }.map { it.block() }
+
+        Thread.sleep(36000)
+
     }
 }

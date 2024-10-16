@@ -1,7 +1,6 @@
 package com.api.market.service
 
 import com.api.market.controller.dto.request.AuctionCreateRequest
-import com.api.market.controller.dto.response.AuctionResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.auction.Auction
 import com.api.market.enums.StatusType

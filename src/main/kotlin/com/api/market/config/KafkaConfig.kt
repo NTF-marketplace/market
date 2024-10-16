@@ -30,6 +30,8 @@ import org.springframework.kafka.listener.MessageListenerContainer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerde
 import org.springframework.kafka.support.serializer.JsonSerializer
+import reactor.kafka.sender.KafkaSender
+import reactor.kafka.sender.SenderOptions
 
 @Configuration
 @EnableKafkaStreams
@@ -100,6 +102,20 @@ class KafkaConfig {
             ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java
         )
         return DefaultKafkaProducerFactory(configProps)
+    }
+
+
+    @Bean
+    fun kafkaSender(): KafkaSender<String, Any> {
+        val props = mapOf(
+            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
+            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
+            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
+            ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java
+        )
+        val senderOptions = SenderOptions.create<String, Any>(props)
+        return KafkaSender.create(senderOptions)
     }
 
     @Bean
