@@ -26,6 +26,7 @@ import org.springframework.kafka.config.KafkaStreamsConfiguration
 import org.springframework.kafka.config.TopicBuilder
 import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.CommonErrorHandler
+import org.springframework.kafka.listener.ContainerProperties
 import org.springframework.kafka.listener.MessageListenerContainer
 import org.springframework.kafka.support.serializer.JsonDeserializer
 import org.springframework.kafka.support.serializer.JsonSerde
@@ -112,7 +113,7 @@ class KafkaConfig {
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
             ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
-            ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java
+            ProducerConfig.PARTITIONER_CLASS_CONFIG to OrderIdPartitioner::class.java,
         )
         val senderOptions = SenderOptions.create<String, Any>(props)
         return KafkaSender.create(senderOptions)
@@ -142,6 +143,7 @@ class KafkaConfig {
         val factory = ConcurrentKafkaListenerContainerFactory<String, Any>()
         factory.consumerFactory = consumerFactory()
         factory.setConcurrency(4)
+        factory.containerProperties.ackMode = ContainerProperties.AckMode.RECORD
         factory.setCommonErrorHandler(object : CommonErrorHandler {
             override fun handleRemaining(thrownException: Exception, records: List<org.apache.kafka.clients.consumer.ConsumerRecord<*, *>>, consumer: org.apache.kafka.clients.consumer.Consumer<*, *>, container: MessageListenerContainer) {
                 logger.error("Error in consumer: ${thrownException.message}", thrownException)
