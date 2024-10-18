@@ -8,62 +8,81 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
+import reactor.kafka.sender.KafkaSender
+import reactor.kafka.sender.SenderRecord
 
 @Service
 class KafkaProducer(
-    private val kafkaTemplate: KafkaTemplate<String, Any>
+    private val kafkaSender: KafkaSender<String,Any>,
 ) {
 
     private val logger = LoggerFactory.getLogger(KafkaProducer::class.java)
 
+
     fun sendScheduleEntity(topic: String, scheduleEntity: ScheduleEntity): Mono<Void> {
-        return Mono.create { sink ->
-            val future = kafkaTemplate.send(topic, scheduleEntity.id.toString(), scheduleEntity)
-            future.whenComplete { result, ex ->
-                if (ex == null) {
-                    logger.info("Sent successfully: ${result?.recordMetadata}")
-                    sink.success()
-                } else {
-                    logger.error("Failed to send", ex)
-                    sink.error(ex)
-                }
-            }
-        }
+        val record = SenderRecord.create(
+            topic,
+            null,
+            null,
+            scheduleEntity.id.toString(),
+            scheduleEntity as Any,
+            null
+        )
+
+        return kafkaSender.send(Mono.just(record))
+            .next()
+            .doOnSuccess {
+                logger.info("request successfully: ${it.recordMetadata()}")
+            }.doOnError {
+                logger.error("Failed to request", it)
+            }.then()
     }
+
 
     fun sendCancellation(scheduleEntity: ScheduleEntity): Mono<Void> {
         return sendScheduleEntity("listing-events", scheduleEntity)
     }
 
-
     fun sendOrderToLedgerService(request: LedgerRequest): Mono<Void> {
-        return Mono.create { sink ->
-            val future = kafkaTemplate.send("ledger-topic", request.orderId.toString(),request)
-            future.whenComplete { result, ex ->
-                if (ex == null) {
-                    logger.info("Sent ledger request successfully: ${result?.recordMetadata}")
-                    sink.success()
-                } else {
-                    logger.error("Failed to send ledger request", ex)
-                    sink.error(ex)
-                }
-            }
-        }
+        val record = SenderRecord.create(
+            "ledger-topic",
+            null,
+            null,
+            request.orderId.toString(),
+            request as Any,
+            null,
+        )
+        return kafkaSender.send(Mono.just(record))
+            .next()
+            .doOnSuccess {
+                logger.info("request successfully: ${it.recordMetadata()}")
+            }.doOnError {
+                logger.error("Failed to request", it)
+            }.then()
     }
 
+
+
     fun sendSaleStatusService(request: SaleResponse): Mono<Void> {
-        return Mono.create<Void?> { sink ->
-            val future = kafkaTemplate.send("sale-topic", request.id.toString() ,request)
-            future.whenComplete { result, ex ->
-                if (ex == null) {
-                    println("sent sale")
-                    logger.info("Sent ledger request successfully: ${result?.recordMetadata}")
-                    sink.success()
-                } else {
-                    logger.error("Failed to send ledger request", ex)
-                    sink.error(ex)
-                }
+        val record = SenderRecord.create(
+            "sale-topic",
+            null,
+            null,
+            request.id.toString(),
+            request as Any,
+            null
+        )
+
+        return kafkaSender.send(Mono.just(record))
+            .next()
+            .doOnSuccess { result ->
+                println("sent sale")
+                println("type : ${request.statusType}")
+                logger.info("Sent sale request successfully: ${result.recordMetadata()}")
             }
-        }.subscribeOn(Schedulers.boundedElastic())
+            .doOnError { ex ->
+                logger.error("Failed to send sale request", ex)
+            }
+            .then()
     }
 }

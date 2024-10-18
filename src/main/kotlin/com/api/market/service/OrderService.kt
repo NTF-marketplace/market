@@ -1,9 +1,9 @@
 package com.api.market.service
 
 import com.api.market.controller.dto.request.OrderCreateRequest
+import com.api.market.controller.dto.response.OrdersResponse
+import com.api.market.controller.dto.response.OrdersResponse.Companion.toResponse
 import com.api.market.domain.auction.Auction
-import com.api.market.domain.auction.AuctionRepository
-import com.api.market.domain.listing.Listing
 import com.api.market.domain.listing.ListingRepository
 import com.api.market.domain.orders.Orders
 import com.api.market.domain.orders.repository.OrdersRepository
@@ -11,7 +11,6 @@ import com.api.market.enums.ChainType
 import com.api.market.enums.OrderStatusType
 import com.api.market.enums.OrderType
 import com.api.market.enums.StatusType
-import com.api.market.kafka.KafkaConsumer
 import com.api.market.kafka.KafkaProducer
 import com.api.market.service.dto.LedgerRequest
 import com.api.market.service.dto.LedgerStatusRequest
@@ -19,6 +18,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Lazy
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import java.math.BigDecimal
 
@@ -33,6 +33,37 @@ class OrderService(
 ) {
 
     private val logger = LoggerFactory.getLogger(OrderService::class.java)
+
+    fun orderHistoryByNftId(nftId: Long): Flux<OrdersResponse> {
+        val listingIdsMono = listingService.getListingByNftId(nftId, StatusType.LEDGER)
+            .map { it.id!! }
+            .collectList()
+
+        val auctionIdsMono = auctionService.getAuctionByNfId(nftId, StatusType.LEDGER)
+            .map { it.id!! }
+            .collectList()
+
+        return listingIdsMono.zipWith(auctionIdsMono)
+            .flatMapMany { tuple ->
+                val listingIds = tuple.t1
+                val auctionIds = tuple.t2
+
+                val listingOrders = ordersRepository.findAllByOrderableIdInAndOrderTypeAndOrderStatusType(
+                    listingIds, OrderType.LISTING, OrderStatusType.COMPLETED
+                )
+
+                val auctionOrders = ordersRepository.findAllByOrderableIdInAndOrderTypeAndOrderStatusType(
+                    auctionIds, OrderType.AUCTION, OrderStatusType.COMPLETED
+                )
+
+                listingOrders.concatWith(auctionOrders)
+            }
+            .sort(Comparator.comparing<Orders, Long> { it.createdAt ?: 0L }.reversed())
+            .map { it.toResponse() }
+    }
+
+
+
 
     fun createListingOrder(address: String, request: OrderCreateRequest): Mono<Void> {
         return listingRepository.findByIdAndStatusType(request.orderableId, StatusType.ACTIVED)
@@ -79,7 +110,8 @@ class OrderService(
                 address = orderAddress,
                 orderableId = orderableId,
                 orderType = orderType,
-                orderStatusType = OrderStatusType.PENDING
+                orderStatusType = OrderStatusType.PENDING,
+                ledgerPrice = price
             )
         ).flatMap { order ->
             kafkaProducer.sendOrderToLedgerService(
@@ -99,7 +131,7 @@ class OrderService(
     fun updateOrderStatus(request: LedgerStatusRequest): Mono<Void> {
         return ordersRepository.findById(request.orderId)
             .flatMap { order ->
-                val updatedOrder = order.update(request.status)
+                val updatedOrder = order.update(request.status,request.ledgerPrice)
                 ordersRepository.save(updatedOrder).then(
                     processStatusUpdate(updatedOrder, request)
                 )

@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS orders (
     orderable_id BIGINT NOT NULL,
     order_type order_type NOT NULL,
     address VARCHAR(255) NOT NULL,
+    ledger_price DECIMAL(19, 4),
     created_at BIGINT not null,
     order_status_type order_status_type not null
 );

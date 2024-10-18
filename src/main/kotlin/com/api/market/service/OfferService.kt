@@ -1,9 +1,12 @@
 package com.api.market.service
 
 import com.api.market.controller.dto.request.OfferCreateRequest
+import com.api.market.controller.dto.response.OfferResponse
+import com.api.market.controller.dto.response.OfferResponse.Companion.toResponse
 import com.api.market.domain.auction.AuctionRepository
 import com.api.market.domain.offer.Offer
 import com.api.market.domain.offer.OfferRepository
+import com.api.market.enums.StatusType
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.stereotype.Service
@@ -20,8 +23,13 @@ class OfferService(
 
     private val offerCreatedPublisher = Sinks.many().multicast().onBackpressureBuffer<Offer>()
 
-    fun offerHistory(auctionId: Long): Flux<Offer> {
-        return offerRepository.findAllByAuctionId(auctionId)
+    fun offerHistory(nftId: Long): Flux<OfferResponse> {
+        return auctionRepository.findByNftIdAndStatusType(nftId, StatusType.ACTIVED)
+            .flatMap { auction ->
+                offerRepository.findAllByAuctionIdOrderByCreatedAtDesc(auction.id!!)
+                    .switchIfEmpty(Flux.empty())
+                    .map { offer -> offer.toResponse() }
+            }
     }
 
 
