@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono
 
 interface ListingRepository: ReactiveCrudRepository<Listing,Long> {
 
-    fun existsByNftIdAndAddressAndStatusType(nftId: Long, address: String, statusType: StatusType): Mono<Boolean>
+    fun existsByNftIdAndAddressAndStatusTypeIn(nftId: Long, address: String, statusTypes: Collection<StatusType>): Mono<Boolean>
 
     fun findByIdAndStatusType(id: Long, statusType: StatusType): Mono<Listing>
 

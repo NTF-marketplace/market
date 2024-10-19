@@ -26,7 +26,7 @@ class ListingService(
 
     fun create(address: String, request: ListingCreateRequest): Mono<Listing> {
         return redisService.getNft(request.nftId)
-            .switchIfEmpty(Mono.error(IllegalArgumentException("NFT not found")))
+            .switchIfEmpty(Mono.error(IllegalArgumentException("nft not found")))
             .flatMap {
                 walletApiService.validNftByAddress(address, request.nftId)
                     .flatMap { nftExists ->
@@ -67,8 +67,8 @@ class ListingService(
     }
 
 
-    fun saveListing(address: String, request: ListingCreateRequest): Mono<Listing> {
-        return listingRepository.existsByNftIdAndAddressAndStatusType(request.nftId, address, StatusType.RESERVATION)
+    fun saveListing(address: String,request: ListingCreateRequest): Mono<Listing> {
+        return listingRepository.existsByNftIdAndAddressAndStatusTypeIn(request.nftId, address, listOf(StatusType.ACTIVED,StatusType.RESERVATION))
             .flatMap { exists ->
                 if (exists) {
                     Mono.error(ListingAlreadyExistsException("Listing already exists for NFT ${request.nftId} and address $address"))

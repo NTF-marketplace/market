@@ -70,8 +70,6 @@ class MarketServiceTest(
         latch.await() // 모든 요청이 완료될 때까지 대기
     }
 
-
-
     //?
     @Test
     fun createAndCancelListings() {
@@ -80,7 +78,7 @@ class MarketServiceTest(
         val listings = listOf(
             ListingCreateRequest(
                 nftId = 10L,
-                createdDate = now.plusSeconds(20),
+                createdDate = now.plusSeconds(40),
                 endDate = now.plusDays(100),
                 price = BigDecimal("1.23"),
                 chainType = ChainType.POLYGON_MAINNET
@@ -91,7 +89,7 @@ class MarketServiceTest(
             listingService.saveListing(address,request)
         }.map { it.block() }
 
-        Thread.sleep(40000)
+        Thread.sleep(20000)
 
         val cancelThread = Thread {
             createdListings.forEach { listing ->
